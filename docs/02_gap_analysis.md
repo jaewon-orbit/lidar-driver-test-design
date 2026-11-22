@@ -4,7 +4,7 @@ Baseline: tier4/nebula 4e02244, Pandar XT32. See 00_scope.md.
 
 ## Method
 1. Read sources A to D and record candidates (C-xx)
-2. Verify each candidate: schema behavior with scripts/probe_schema.py (L1), code reading for runtime behavior, node runs without a sensor for launch behavior (L2)
+2. Verify each candidate: schema behavior with scripts/probe_schema.py (L1), code reading for runtime behavior, node runs without a sensor for launch behavior (L2), replay of nebula's recorded XT32 data for output behavior (L3)
 3. Promote verified candidates to GAP entries. Merge candidates with the same root cause
 4. Mark every assumption as an assumption. Facts come with a file and line reference
 
@@ -15,6 +15,7 @@ File abbreviations:
 - wrapper: src/nebula_hesai/nebula_hesai/src/hesai_ros_wrapper.cpp
 - probe: docs/evidence/probe-2026-11-22.md
 - L2 run: docs/evidence/l2-run-2026-11-22.md
+- L3 run: docs/evidence/l3-replay-2026-11-23.md
 
 ## Summary
 
@@ -25,14 +26,14 @@ File abbreviations:
 | GAP-003 | ptp_lock_threshold applicability differs between docs and code | Inconsistency | code reading |
 | GAP-004 | additionalProperties at "/**" level has no effect | Inconsistency | probe (L1) |
 | GAP-005 | multicast_ip pattern accepts any string | Inconsistency | probe (L1) |
-| GAP-006 | cut_angle range depends on FoV but is checked alone | Interaction undefined | probe (L1), code reading |
+| GAP-006 | cut_angle range depends on FoV; only the driver checks the relation | Inconsistency | probe (L1), code reading, L3 run |
 | GAP-007 | PTP transport rule is documented as a restriction but handled as auto-correction | Inconsistency | probe (L1), code reading, L2 run |
 | GAP-008 | Ports and MTU have no upper bound while code uses uint16_t | Missing | probe (L1), code reading, L2 run |
 | GAP-009 | min_range and max_range are optional, unordered, with differing defaults | Missing | probe (L1), code reading, L2 run |
 | GAP-010 | rotation_speed and diagnostics rate bounds must change together | Interaction undefined | code reading, L2 run |
 | GAP-011 | num_frame_transition default differs between schema and code | Inconsistency | code reading, L2 run |
 | GAP-012 | "Dual" return mode means different modes per model | Ambiguity | code reading, L2 run |
-| GAP-013 | Degenerate FoV settings are not defined | Ambiguity | doc reading, L2 run |
+| GAP-013 | Degenerate FoV settings are not defined in the user docs | Ambiguity | doc reading, code reading, L2 run, L3 run |
 | GAP-014 | diag_span has no unit | Missing | doc reading |
 | GAP-015 | Schema defaults are strings for numeric and boolean types | Inconsistency | doc reading |
 
@@ -98,18 +99,20 @@ File abbreviations:
 - Question: Should the pattern be "^$|^(...)$"?
 - Linked test cases: TC-SCH-021 (L1, automated)
 
-### GAP-006: cut_angle range depends on FoV but is checked alone
-- Category: Interaction undefined
+### GAP-006: cut_angle range depends on FoV; only the driver checks the relation
+- Category: Inconsistency (originally recorded as Interaction undefined, changed after the driver check was found)
 - Parameters: cut_angle, cloud_min_angle, cloud_max_angle
 - Evidence:
   - Doc: common.md L107, cut_angle must be in (cloud_min_angle, cloud_max_angle], or [0, 360) for a 360 deg FoV
   - Schema: hesai schema L91-L97, 0 to 360 with no relation to FoV
   - Runtime: wrapper L169-L176, 0 to 360 step 0.01. The description says "Cannot be equal to the start angle in a non-360 deg FoV", worded differently from the doc
   - Probe: cut_angle=360 with FoV 0 to 360 passes (C-06)
-- Assumption: Values outside the doc range are invalid and should be rejected before connecting. For a FoV that crosses 0 deg (e.g. 270 to 90), I assume the valid range also crosses 0 deg
-- Impact: The behavior for an invalid cut_angle (empty or split scans, wrong timestamps) is unknown and can only be checked with recorded data
-- Question: What does the driver do with cut_angle=360 at 360 deg FoV, and how is the range defined for a FoV that crosses 0 deg?
-- Linked test cases: TC-SCH-022 (L1, automated), TC-FOV-010 (L3, not run)
+  - Driver check: validate_decoder_settings (src/nebula_hesai/nebula_hesai_decoders/include/nebula_hesai_decoders/hesai_decoder_settings.hpp L46-L59), called at startup (wrapper L365), rejects a cut_angle outside the FoV, a cut_angle equal to the start of a partial FoV, and cut_angle=360 for a 0 to 360 FoV. nebula's unit tests cover these rules, including a FoV that crosses 0 deg (src/nebula_hesai/nebula_hesai_decoders/tests/test_hesai_decoder_settings.cpp L77-L144)
+  - L3 run (TC-FOV-010, 3 of 3 runs): cut_angle=360 with FoV 0 to 360 aborts startup with "Cannot cut a 360deg FoV at 360deg. Cut at 0deg instead." FoV 90 to 315 with the default cut_angle 0 aborts with "Cannot cut scan outside of the FoV."
+- Assumption: The earlier assumption (values outside the doc range are rejected before connecting) is confirmed by the driver check, also for a FoV that crosses 0 deg. The remaining gap is the schema, which accepts these values
+- Impact: A param file that passes schema validation can still stop the driver at launch. With the default cut_angle 0, a partial FoV must contain 0 deg and must not start at 0 deg; otherwise cut_angle has to be set (hesai_decoder_settings.hpp L46-L53)
+- Question: Should the schema express the cut_angle rule (for example with if/then), so that file validation matches the driver check?
+- Linked test cases: TC-SCH-022 (L1, automated), TC-FOV-010 (L3, run 2026-11-23)
 
 ### GAP-007: PTP transport rule is documented as a restriction but handled as auto-correction
 - Category: Inconsistency
@@ -175,7 +178,7 @@ File abbreviations:
 - Assumption: The generated docs show 3, while the driver uses 1
 - Impact: The diagnostic status changes after 1 frame instead of 3, so it may flap more than users expect
 - Question: Which default is intended?
-- Linked test cases: TC-DIAG-002 (L3, not run), TC-DIAG-003 (L2, run 2026-11-22)
+- Linked test cases: TC-DIAG-002 (L3, not run: the available recording has no packet gap, see L3 run), TC-DIAG-003 (L2, run 2026-11-22)
 
 ### GAP-012: "Dual" return mode means different modes per model
 - Category: Ambiguity
@@ -188,16 +191,18 @@ File abbreviations:
 - Question: Can the docs state what "Dual" maps to per model?
 - Linked test cases: TC-RM-001, TC-RM-002 (L2, run 2026-11-22)
 
-### GAP-013: Degenerate FoV settings are not defined
+### GAP-013: Degenerate FoV settings are not defined in the user docs
 - Category: Ambiguity
 - Parameters: cloud_min_angle, cloud_max_angle
 - Evidence:
-  - Docs, schema and code: common.md L93-L94 allows a FoV that crosses 0 deg. misc.json L17-L30 and wrapper ranges allow each value in 0 to 360 independently. Nothing defines cloud_min_angle == cloud_max_angle, or cloud_min_angle=360
+  - Docs and schema: common.md L93-L94 allows a FoV that crosses 0 deg. misc.json L17-L30 and wrapper ranges allow each value in 0 to 360 independently. The user docs do not define cloud_min_angle == cloud_max_angle, or cloud_min_angle=360
+  - Code: src/nebula_core/nebula_core_decoders/include/nebula_core_decoders/angles.hpp L81-L84 states that equal start and end angles cover the full circle and that a zero-width sector cannot be defined. nebula's unit test uses 90 to 90 as a FoV (test_hesai_decoder_settings.cpp L108-L109)
   - L2 run (TC-FOV-011, 3 of 3 runs): cloud_min_angle=90 with cloud_max_angle=90 is accepted. The node starts and logs "FoV Start: 90" and "FoV End: 90". `ros2 param describe` shows each angle as an integer from 0 to 360, step 1, with no rule between them
-- Assumption: Equal angles mean an empty FoV and should be rejected. The L2 run shows they are not rejected. The resulting point cloud (empty, full or other) is not known and needs recorded data (L3)
-- Impact: Unknown output for these settings
-- Question: Are equal angles valid, and is 360 a valid start angle?
-- Linked test cases: TC-FOV-011 (L2, run 2026-11-22)
+  - L3 run (TC-FOV-011 replay, 3 of 3 runs): with 90 to 90, all 4 decoded scans are equal to the scans with 0 to 360 (same stamps, point counts and coordinates)
+- Assumption: My earlier assumption (equal angles mean an empty FoV and should be rejected) is contradicted by the code and the L3 run: equal angles mean the full circle. Whether users are meant to rely on this is open, because the user docs do not say it. cloud_min_angle=360 was not run
+- Impact: A user who sets equal angles expecting a narrow or empty FoV gets a full scan without a warning
+- Question: Should the docs state that equal angles mean 360 deg, or should the driver reject them? Is 360 a valid start angle?
+- Linked test cases: TC-FOV-011 (L2, run 2026-11-22; replayed at L3 on 2026-11-23)
 
 ### GAP-014: diag_span has no unit
 - Category: Missing

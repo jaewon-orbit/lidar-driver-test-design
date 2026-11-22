@@ -25,13 +25,13 @@ GAP-002,GAP,rotation_speed allowed values differ across three places,REQ-ROT-01,
 GAP-003,GAP,ptp_lock_threshold applicability differs between docs and code,REQ-PTP-05,TC-PTP-010,,L4,Partial
 GAP-004,GAP,"additionalProperties at ""/**"" level has no effect",REQ-SCH-01,TC-SCH-020,,L1,Full
 GAP-005,GAP,multicast_ip pattern accepts any string,REQ-NET-02,TC-SCH-021,,L1,Full
-GAP-006,GAP,cut_angle range depends on FoV but is checked alone,REQ-CUT-01,"TC-SCH-022, TC-FOV-010",,"L1, L3",Full
+GAP-006,GAP,cut_angle range depends on FoV; only the driver checks the relation,REQ-CUT-01,"TC-SCH-022, TC-FOV-010",,"L1, L3",Full
 GAP-007,GAP,PTP transport rule is documented as a restriction but handled as auto-correction,REQ-PTP-03,"TC-SCH-023, TC-RUN-002, TC-SCH-046",,"L1, L2",Full
 GAP-008,GAP,Ports and MTU have no upper bound while code uses uint16_t,REQ-NET-03,"TC-SCH-025, TC-SCH-026, TC-RUN-003",,"L1, L2",Full
 GAP-009,GAP,"min_range and max_range are optional, unordered, with differing defaults",REQ-RNG-01,"TC-SCH-027, TC-RUN-004",,"L1, L2",Full
 GAP-010,GAP,rotation_speed and diagnostics rate bounds must change together,"REQ-DIAG-01, REQ-ROT-01",TC-DIAG-001,,L2,Full
 GAP-011,GAP,num_frame_transition default differs between schema and code,REQ-DIAG-01,"TC-DIAG-002, TC-DIAG-003",,"L2, L3",Full
 GAP-012,GAP,"""Dual"" return mode means different modes per model",REQ-RM-01,"TC-RM-001, TC-RM-002",,L2,Full
-GAP-013,GAP,Degenerate FoV settings are not defined,REQ-FOV-01,TC-FOV-011,,L2,Full
+GAP-013,GAP,Degenerate FoV settings are not defined in the user docs,REQ-FOV-01,TC-FOV-011,,L2,Full
 GAP-014,GAP,diag_span has no unit,,,,,None
 GAP-015,GAP,Schema defaults are strings for numeric and boolean types,,TC-SCH-030,,L1,Full
