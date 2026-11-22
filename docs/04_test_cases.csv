@@ -62,3 +62,17 @@ TC-PTP-002,Locked to tracking,REQ-PTP-06,State transition,"XT32 in locked state"
 TC-PTP-003,Tracking to free run,REQ-PTP-06,State transition,"XT32 in tracking state",Disconnect PTP master,Hardware monitor reports ERROR,Doc,High,L4
 TC-PTP-004,Free run back to locked,REQ-PTP-06,State transition,"XT32 in free run state",Reconnect PTP master,(assumption) Returns to OK within one diag_span. Timing is not documented,Assumption,Medium,L4
 TC-PTP-010,Lock threshold is written to XT32,GAP-003,EP,"XT32, PTP master",ptp_lock_threshold=50,Driver logs the lock offset change and the sensor reports 50,Code,High,L4
+TC-SCH-042,XT32 model name passes,REQ-MODEL-01,EP,Default XT32 YAML,sensor_model=PandarXT32,Passes schema,Schema,High,L1
+TC-SCH-043,802.1as with L2 passes,REQ-PTP-03,Decision table,Default XT32 YAML,"ptp_profile=802.1as, ptp_transport_type=L2",Passes schema,Doc,Medium,L1
+TC-SCH-044,automotive with L2 passes,REQ-PTP-03,Decision table,Default XT32 YAML,"ptp_profile=automotive, ptp_transport_type=L2",Passes schema,Doc,Medium,L1
+TC-SCH-045,1588v2 with L2 passes,REQ-PTP-03,Decision table,Default XT32 YAML,"ptp_profile=1588v2, ptp_transport_type=L2",Passes schema,Doc,Medium,L1
+TC-SCH-046,automotive with UDP is rejected,GAP-007,Decision table,Default XT32 YAML,"ptp_profile=automotive, ptp_transport_type=UDP",Rejected by schema (known gap: currently passes),Doc,Medium,L1
+TC-SCH-047,min_range at lower bound,REQ-RNG-01,BVA,Default XT32 YAML,min_range=0,Passes schema,Schema,Medium,L1
+TC-SCH-048,min_range below lower bound,REQ-RNG-01,BVA,Default XT32 YAML,min_range=-0.1,Rejected by schema,Schema,Medium,L1
+TC-SCH-049,max_range below lower bound,REQ-RNG-01,BVA,Default XT32 YAML,max_range=-1,Rejected by schema,Schema,Medium,L1
+TC-SCH-050,frequency_ok without min_hz is rejected,REQ-DIAG-01,EP,Default XT32 YAML,Remove diagnostics.pointcloud_publish_rate.frequency_ok.min_hz,Rejected by schema,Schema,Medium,L1
+TC-SCH-051,Rate bound as string is rejected,REQ-DIAG-01,EP,Default XT32 YAML,"frequency_ok.min_hz=""9.5"" (string)",Rejected by schema,Schema,Low,L1
+TC-SCH-052,cut_angle just below 360 with full FoV,REQ-CUT-01,BVA,FoV 0 to 360,cut_angle=359.99,Passes schema,Doc,Medium,L1
+TC-SCH-053,cut_angle below 0 is rejected,REQ-CUT-01,BVA,Default XT32 YAML,cut_angle=-0.01,Rejected by schema,Schema,Medium,L1
+TC-SCH-054,FoV crossing 0 deg passes,REQ-FOV-02,EP,Default XT32 YAML,"cloud_min_angle=270, cloud_max_angle=90",Passes schema,Doc,High,L1
+TC-DIAG-003,num_frame_transition default at runtime,GAP-011,EP,"ROS 2 container, launch_hw=false",num_frame_transition not set,"ros2 param get returns 1, while the schema default is 3",Code,Low,L2

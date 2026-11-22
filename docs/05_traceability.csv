@@ -1,36 +1,36 @@
 item,type,description,linked,direct_test_cases,via_gap_test_cases,levels,coverage
 REQ-SCH-01,REQ,The param file contains every required parameter and no unknown parameter,GAP-004,"TC-SCH-001, TC-SCH-002, TC-SCH-003, TC-RUN-006",TC-SCH-020,"L1, L2",Full
-REQ-MODEL-01,REQ,sensor_model is PandarXT32 in the XT32 param file,GAP-001,,"TC-SCH-010, TC-SCH-011, TC-SCH-012, TC-SCH-013, TC-SCH-014, TC-SCH-015, TC-SCH-019",L1,Partial
+REQ-MODEL-01,REQ,sensor_model is PandarXT32 in the XT32 param file,GAP-001,TC-SCH-042,"TC-SCH-010, TC-SCH-011, TC-SCH-012, TC-SCH-013, TC-SCH-014, TC-SCH-015, TC-SCH-019",L1,Full
 REQ-NET-01,REQ,host_ip and sensor_ip are IPv4 addresses,,TC-SCH-037,,L1,Full
 REQ-NET-02,REQ,multicast_ip is empty or a multicast address,GAP-005,TC-SCH-041,TC-SCH-021,L1,Full
 REQ-NET-03,REQ,"data_port, gnss_port and packet_mtu_size are integers of at least 0",GAP-008,TC-SCH-024,"TC-SCH-025, TC-SCH-026, TC-RUN-003","L1, L2",Full
 REQ-NET-04,REQ,udp_socket_receive_buffer_size_bytes is at least 256,,TC-SCH-038,,L1,Full
 REQ-FOV-01,REQ,cloud_min_angle and cloud_max_angle are integers from 0 to 360,GAP-013,"TC-SCH-005, TC-SCH-006, TC-SCH-007, TC-SCH-008, TC-SCH-009",TC-FOV-011,"L1, L2",Full
-REQ-FOV-02,REQ,The FoV may cross 0 deg (e.g. 270 to 90),,TC-FOV-003,,L3,Partial
+REQ-FOV-02,REQ,The FoV may cross 0 deg (e.g. 270 to 90),,"TC-FOV-003, TC-SCH-054",,"L1, L3",Full
 REQ-FOV-03,REQ,The output point cloud has exactly the configured FoV,,"TC-FOV-001, TC-FOV-002",,L3,Partial
-REQ-CUT-01,REQ,"cut_angle is in (cloud_min_angle, cloud_max_angle], or [0, 360) for 360 deg FoV, and sets scan timing as in the examples table",GAP-006,"TC-CUT-001, TC-CUT-002","TC-SCH-022, TC-FOV-010","L1, L3",Partial
+REQ-CUT-01,REQ,"cut_angle is in (cloud_min_angle, cloud_max_angle], or [0, 360) for 360 deg FoV, and sets scan timing as in the examples table",GAP-006,"TC-CUT-001, TC-CUT-002, TC-SCH-052, TC-SCH-053","TC-SCH-022, TC-FOV-010","L1, L3",Full
 REQ-SYNC-01,REQ,sync_angle is an integer from 0 to 359,,"TC-SCH-033, TC-SCH-034",,L1,Full
 REQ-ROT-01,REQ,rotation_speed is one of the supported RPM values,"GAP-001, GAP-002, GAP-010","TC-SCH-004, TC-SCH-016, TC-SCH-017, TC-RUN-005","TC-SCH-010, TC-SCH-011, TC-SCH-012, TC-SCH-013, TC-SCH-014, TC-SCH-015, TC-SCH-019, TC-SCH-018, TC-RUN-001, TC-DIAG-001","L1, L2",Full
 REQ-RM-01,REQ,return_mode is one of the 7 XT32 values,"GAP-001, GAP-012",TC-SCH-040,"TC-SCH-010, TC-SCH-011, TC-SCH-012, TC-SCH-013, TC-SCH-014, TC-SCH-015, TC-SCH-019, TC-RM-001, TC-RM-002","L1, L2",Full
 REQ-PTP-01,REQ,"ptp_profile is 1588v2, 802.1as or automotive",,TC-SCH-039,,L1,Full
 REQ-PTP-02,REQ,ptp_domain is an integer from 0 to 127,,"TC-SCH-028, TC-SCH-029",,L1,Full
-REQ-PTP-03,REQ,802.1as and automotive use only L2 transport,GAP-007,,"TC-SCH-023, TC-RUN-002","L1, L2",Partial
+REQ-PTP-03,REQ,802.1as and automotive use only L2 transport,GAP-007,"TC-SCH-043, TC-SCH-044, TC-SCH-045","TC-SCH-023, TC-RUN-002, TC-SCH-046","L1, L2",Full
 REQ-PTP-05,REQ,ptp_lock_threshold is an integer from 1 to 100 microseconds,GAP-003,"TC-SCH-031, TC-SCH-032",TC-PTP-010,"L1, L4",Full
 REQ-PTP-06,REQ,"Hardware monitor: locked is OK, tracking is WARNING, frozen and free run are ERROR",,"TC-PTP-001, TC-PTP-002, TC-PTP-003, TC-PTP-004",,L4,Partial
-REQ-RNG-01,REQ,min_range and max_range are numbers of at least 0,GAP-009,,"TC-SCH-027, TC-RUN-004","L1, L2",Partial
+REQ-RNG-01,REQ,min_range and max_range are numbers of at least 0,GAP-009,"TC-SCH-047, TC-SCH-048, TC-SCH-049","TC-SCH-027, TC-RUN-004","L1, L2",Full
 REQ-DRT-01,REQ,dual_return_distance_threshold is from 0.01 to 0.5,,"TC-SCH-035, TC-SCH-036",,L1,Full
-REQ-DIAG-01,REQ,"Point cloud publish rate is OK, WARN or ERROR by the configured bounds","GAP-001, GAP-010, GAP-011",,"TC-SCH-010, TC-SCH-011, TC-SCH-012, TC-SCH-013, TC-SCH-014, TC-SCH-015, TC-SCH-019, TC-DIAG-001, TC-DIAG-002","L1, L2, L3",Partial
+REQ-DIAG-01,REQ,"Point cloud publish rate is OK, WARN or ERROR by the configured bounds","GAP-001, GAP-010, GAP-011","TC-SCH-050, TC-SCH-051","TC-SCH-010, TC-SCH-011, TC-SCH-012, TC-SCH-013, TC-SCH-014, TC-SCH-015, TC-SCH-019, TC-DIAG-001, TC-DIAG-002, TC-DIAG-003","L1, L2, L3",Full
 GAP-001,GAP,Model-specific schema constraints are not enforced,"REQ-MODEL-01, REQ-RM-01, REQ-ROT-01, REQ-DIAG-01","TC-SCH-010, TC-SCH-011, TC-SCH-012, TC-SCH-013, TC-SCH-014, TC-SCH-015, TC-SCH-019",,L1,Full
 GAP-002,GAP,rotation_speed allowed values differ across three places,REQ-ROT-01,"TC-SCH-018, TC-RUN-001",,"L1, L2",Full
 GAP-003,GAP,ptp_lock_threshold applicability differs between docs and code,REQ-PTP-05,TC-PTP-010,,L4,Partial
 GAP-004,GAP,"additionalProperties at ""/**"" level has no effect",REQ-SCH-01,TC-SCH-020,,L1,Full
 GAP-005,GAP,multicast_ip pattern accepts any string,REQ-NET-02,TC-SCH-021,,L1,Full
 GAP-006,GAP,cut_angle range depends on FoV but is checked alone,REQ-CUT-01,"TC-SCH-022, TC-FOV-010",,"L1, L3",Full
-GAP-007,GAP,PTP transport rule is documented as a restriction but handled as auto-correction,REQ-PTP-03,"TC-SCH-023, TC-RUN-002",,"L1, L2",Full
+GAP-007,GAP,PTP transport rule is documented as a restriction but handled as auto-correction,REQ-PTP-03,"TC-SCH-023, TC-RUN-002, TC-SCH-046",,"L1, L2",Full
 GAP-008,GAP,Ports and MTU have no upper bound while code uses uint16_t,REQ-NET-03,"TC-SCH-025, TC-SCH-026, TC-RUN-003",,"L1, L2",Full
 GAP-009,GAP,"min_range and max_range are optional, unordered, with differing defaults",REQ-RNG-01,"TC-SCH-027, TC-RUN-004",,"L1, L2",Full
 GAP-010,GAP,rotation_speed and diagnostics rate bounds must change together,"REQ-DIAG-01, REQ-ROT-01",TC-DIAG-001,,L2,Full
-GAP-011,GAP,num_frame_transition default differs between schema and code,REQ-DIAG-01,TC-DIAG-002,,L3,Partial
+GAP-011,GAP,num_frame_transition default differs between schema and code,REQ-DIAG-01,"TC-DIAG-002, TC-DIAG-003",,"L2, L3",Full
 GAP-012,GAP,"""Dual"" return mode means different modes per model",REQ-RM-01,"TC-RM-001, TC-RM-002",,L2,Full
 GAP-013,GAP,Degenerate FoV settings are not defined,REQ-FOV-01,TC-FOV-011,,L2,Full
 GAP-014,GAP,diag_span has no unit,,,,,None
