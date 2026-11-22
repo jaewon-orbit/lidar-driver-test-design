@@ -5,10 +5,13 @@ default XT32 YAML, validates it with check-jsonschema, and compares the
 result with what the docs or other sources say should happen.
 CTRL cases are controls that the schema must reject if the tool works.
 
-Workaround (C-17): the original schema files declare relative "$id" values
-such as "nebula_hesai/schema/lidar_hesai.json". These change the base URI and
-break relative $ref resolution in standard validators. The script copies the
-schemas to a temp dir with the same layout and removes "$id" before validating.
+Schema loading (C-17): the original files declare relative "$id" values such
+as "nebula_hesai/schema/lidar_hesai.json", which break $ref resolution in
+check-jsonschema. The script first compares three ways of loading the schemas
+and uses the first one where BASE passes and CTRL-1 is rejected:
+  original     schema files as they are
+  id_removed   "$id" removed in temp copies
+  id_absolute  "$id" replaced with each temp copy's absolute file URI
 """
 import json
 import subprocess
@@ -25,6 +28,7 @@ SCHEMA_DIRS = [
 ]
 MODEL_SCHEMA = Path("src/nebula_hesai/nebula_hesai/schema/PandarXT32.schema.json")
 PARAM = NEBULA / "src/nebula_hesai/nebula_hesai/config/PandarXT32.param.yaml"
+VARIANTS = ["original", "id_removed", "id_absolute"]
 
 
 def params(doc):
@@ -78,20 +82,25 @@ CASES = [
 ]
 
 
-def prepare_schemas(workdir):
-    """Copy schemas keeping the repo layout and drop "$id" (see module docstring)."""
+def prepare_schemas(workdir, variant):
+    if variant == "original":
+        return (NEBULA / MODEL_SCHEMA).resolve()
+    out = workdir / variant
     for rel in SCHEMA_DIRS:
         for src in (NEBULA / rel).glob("*.json"):
             data = json.loads(src.read_text())
-            data.pop("$id", None)
-            dst = workdir / rel / src.name
+            dst = out / rel / src.name
+            if variant == "id_removed":
+                data.pop("$id", None)
+            elif variant == "id_absolute":
+                data["$id"] = dst.as_uri()
             dst.parent.mkdir(parents=True, exist_ok=True)
             dst.write_text(json.dumps(data, indent=2))
-    return workdir / MODEL_SCHEMA
+    return out / MODEL_SCHEMA
 
 
-def validate(schema, doc, workdir, case_id):
-    path = workdir / f"{case_id}.yaml"
+def validate(schema, doc, workdir, name):
+    path = workdir / f"{name}.yaml"
     path.write_text(yaml.safe_dump(doc, sort_keys=False))
     result = subprocess.run(
         ["check-jsonschema", "--schemafile", str(schema), str(path)],
@@ -106,35 +115,49 @@ def validate(schema, doc, workdir, case_id):
     return f"error({result.returncode})", log
 
 
+def tail(log, n=3):
+    lines = [line.strip() for line in log.splitlines() if line.strip()]
+    return "\n    ".join(lines[-n:])
+
+
 def main():
     base_text = PARAM.read_text()
     with tempfile.TemporaryDirectory() as tmp:
-        workdir = Path(tmp)
+        workdir = Path(tmp).resolve()
 
-        raw_result, _ = validate(NEBULA / MODEL_SCHEMA, yaml.safe_load(base_text), workdir, "RAW")
-        print(f"Original schema files, default YAML: {raw_result}\n")
+        print("## Schema loading comparison (BASE should pass, CTRL-1 should reject)\n")
+        chosen = None
+        for variant in VARIANTS:
+            schema = prepare_schemas(workdir, variant)
+            base, base_log = validate(schema, yaml.safe_load(base_text), workdir, f"{variant}-base")
+            doc = yaml.safe_load(base_text)
+            set_params(cloud_min_angle=-1)(doc)
+            ctrl, _ = validate(schema, doc, workdir, f"{variant}-ctrl")
+            print(f"- {variant}: BASE={base}, CTRL-1={ctrl}")
+            if base != "pass":
+                print(f"    {tail(base_log)}")
+            if chosen is None and base == "pass" and ctrl == "reject":
+                chosen = (variant, schema)
 
-        schema = prepare_schemas(workdir)
-        rows, details = [], []
+        if chosen is None:
+            print("\nNo variant works. Stopping.")
+            return 1
+
+        variant, schema = chosen
+        print(f"\nUsing variant: {variant}\n")
+        print("| case | description | expected | actual | match |")
+        print("|---|---|---|---|---|")
+        details = []
         for case_id, desc, mutate, expected in CASES:
             doc = yaml.safe_load(base_text)
             mutate(doc)
             actual, log = validate(schema, doc, workdir, case_id)
-            if expected == "unclear":
-                match = "-"
-            else:
-                match = "yes" if actual == expected else "NO"
-            rows.append((case_id, desc, expected, actual, match))
+            match = "-" if expected == "unclear" else ("yes" if actual == expected else "NO")
+            print(f"| {case_id} | {desc} | {expected} | {actual} | {match} |")
             if actual != "pass":
-                short = "\n".join(log.splitlines()[:6])
-                details.append(f"[{case_id}]\n{short}\n")
-
-    print("| case | description | expected | actual | match |")
-    print("|---|---|---|---|---|")
-    for row in rows:
-        print("| " + " | ".join(row) + " |")
-    print("\n## Details for non-pass cases (first lines)\n")
-    print("\n".join(details))
+                details.append(f"[{case_id}]\n    {tail(log)}")
+        print("\n## Details for non-pass cases (last lines)\n")
+        print("\n".join(details))
     return 0
 
 
