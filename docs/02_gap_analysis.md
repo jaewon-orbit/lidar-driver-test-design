@@ -22,7 +22,7 @@ File abbreviations:
 | ID | Title | Category | Verified by |
 |---|---|---|---|
 | GAP-001 | Model-specific schema constraints are not enforced | Inconsistency | probe (L1) |
-| GAP-002 | rotation_speed allowed values differ across three places | Inconsistency | code reading, L2 run |
+| GAP-002 | rotation_speed allowed values differ across three places | Inconsistency | code reading, L2 run, vendor manual |
 | GAP-003 | ptp_lock_threshold applicability differs between docs and code | Inconsistency | code reading |
 | GAP-004 | additionalProperties at "/**" level has no effect | Inconsistency | probe (L1) |
 | GAP-005 | multicast_ip pattern accepts any string | Inconsistency | probe (L1) |
@@ -60,9 +60,10 @@ File abbreviations:
   - Runtime description: wrapper L199-L212, additional_constraints "300, 600, 1200"
   - Default YAML: PandarXT32.param.yaml L24, 600
   - L2 run (TC-RUN-001, 3 of 3 runs): rotation_speed=900 is accepted and the node starts with "Rotation Speed: 900". `ros2 param describe` shows Min 300, Max 1200, Step 300 and "Additional constraints: 300, 600, 1200". rotation_speed=360 aborts startup with InvalidParameterValueException (TC-RUN-005)
-- Assumption: XT32 supports 300, 600 and 1200 RPM (5, 10 and 20 Hz), as the runtime description says. To be confirmed with the vendor manual (source E). The L2 run shows what the driver accepts, not what the sensor supports, so it does not settle this
+  - Vendor manual (source E, PandarXT User Manual X01-en-260710): frame rate 5, 10, 20 Hz (1.5, p.15), RPM = frame rate × 60 (3.1.2.4, p.53), Spin Rate options 300, 600 (default), 1200 RPM (4.2.2, p.70). 900 is not listed. Details: docs/evidence/vendor-manual-2026-11-23.md
+- Assumption: Confirmed by the vendor manual: XT32 supports 300, 600 and 1200 RPM (5, 10 and 20 Hz) only. The runtime description matches the manual; the schema (multipleOf 60) and the runtime range (step 300) are wider than the sensor supports. What the sensor does if it is asked for 900 RPM is not stated in the manual and stays open (needs a real sensor, L4)
 - Impact: 900 is accepted by the schema and, as observed at L2, by the runtime range, but is not listed as supported. Once GAP-001 is fixed, values like 360 would pass the schema but fail at launch
-- Question: Is 900 RPM supported on XT32, and which source is authoritative?
+- Question: Should the schema and the runtime range be narrowed to 300, 600 and 1200, as listed in the vendor manual?
 - Linked test cases: TC-SCH-018 (L1, automated), TC-RUN-001 (L2, run 2026-11-22). Related: TC-SCH-016 (L1, automated, linked to REQ-ROT-01)
 
 ### GAP-003: ptp_lock_threshold applicability differs between docs and code

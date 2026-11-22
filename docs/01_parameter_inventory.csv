@@ -20,8 +20,8 @@ cut_angle,degrees (corrected angle),,"(cloud_min_angle, cloud_max_angle], or [0,
 sensor_model,,,,string,,"PandarXT32 (model schema), 10 Hesai models (hesai schema)",PandarXT32,SensorModel (enum),N,C-01
 calibration_file,,,,string,.../calibration/$(var sensor_model).csv,,.../calibration/$(var sensor_model).csv,std::string (calibration_path),Y,Param name differs from struct field name
 calibration_download_enabled,,,,boolean,true,,true,bool,Y,
-rotation_speed,,,,integer,600,"300-1200, multipleOf 60",600,uint16_t,N,C-01 C-09; XT32 supported RPM to check in vendor manual
-return_mode,,,,string,,"Last, Strongest, LastStrongest, First, LastFirst, FirstStrongest, Dual",Dual,ReturnMode (enum),N,C-01; XT32 supported modes to check in vendor manual
+rotation_speed,,,,integer,600,"300-1200, multipleOf 60",600,uint16_t,N,"C-01 C-09; vendor manual lists 300, 600, 1200 RPM only (GAP-002)"
+return_mode,,,,string,,"Last, Strongest, LastStrongest, First, LastFirst, FirstStrongest, Dual",Dual,ReturnMode (enum),N,"C-01; vendor manual lists Last, Strongest, First, Last and Strongest, Last and First, First and Strongest; mapping of Dual not checked"
 ptp_profile,,,"1588v2, 802.1as, automotive",string,1588v2,"1588v2, 802.1as, automotive",1588v2,PtpProfile (enum),Y,Doc says support varies by sensor; XT32 support not stated
 ptp_domain,,,,integer,0,0-127,0,uint8_t,Y,
 ptp_transport_type,,,"UDP or L2; only L2 for 802.1as and automotive",string,UDP,"UDP, L2",UDP,PtpTransportType (enum),N,C-07

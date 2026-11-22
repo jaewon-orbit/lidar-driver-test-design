@@ -13,7 +13,7 @@
 | B | JSON schema | src/nebula_hesai/nebula_hesai/schema/PandarXT32.schema.json (including $ref targets) |
 | C | Default YAML | src/nebula_hesai/nebula_hesai/config/PandarXT32.param.yaml |
 | D | Config struct in code | HesaiSensorConfiguration (path to be recorded during source collection) |
-| E | Vendor manual | Hesai Pandar XT32 user manual (public availability to be checked) |
+| E | Vendor manual | PandarXT User Manual, doc version X01-en-260710, public (Hesai download page). Not stored here, see docs/evidence/vendor-manual-2026-11-23.md |
 
 ## In scope
 - Cross-checking XT32 ROS 2 parameters across sources A to E

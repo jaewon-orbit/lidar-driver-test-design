@@ -16,7 +16,7 @@ TC-SCH-014,Diagnostics without publish rate bounds is rejected,GAP-001,EP,Defaul
 TC-SCH-015,rotation_speed above maximum is rejected,GAP-001,BVA,Default XT32 YAML,rotation_speed=1260,Rejected by schema (known gap: currently passes),Schema,High,L1
 TC-SCH-016,rotation_speed at lower bound,REQ-ROT-01,BVA,Default XT32 YAML,rotation_speed=300,Passes schema,Schema,High,L1
 TC-SCH-017,rotation_speed at upper bound,REQ-ROT-01,BVA,Default XT32 YAML,rotation_speed=1200,Passes schema,Schema,High,L1
-TC-SCH-018,rotation_speed 900 is handled as unsupported,GAP-002,EP,Default XT32 YAML,rotation_speed=900,"(assumption) Rejected, since XT32 supports 300, 600 and 1200 only (known gap: currently passes)",Assumption,Medium,L1
+TC-SCH-018,rotation_speed 900 is handled as unsupported,GAP-002,EP,Default XT32 YAML,rotation_speed=900,"(assumption) Rejected, since the vendor manual lists 300, 600 and 1200 RPM only (known gap: currently passes)",Assumption,Medium,L1
 TC-SCH-019,rotation_speed below minimum is rejected,GAP-001,BVA,Default XT32 YAML,rotation_speed=240,Rejected by schema (known gap: currently passes),Schema,High,L1
 TC-SCH-020,Unknown key next to ros__parameters is rejected,GAP-004,EP,Default XT32 YAML,"Add unknown_key=1 under ""/**""",Rejected by schema (known gap: currently passes),Schema,Medium,L1
 TC-SCH-021,Invalid multicast address is rejected,GAP-005,EP,Default XT32 YAML,multicast_ip=not-an-ip,Rejected by schema (known gap: currently passes),Schema,Medium,L1
