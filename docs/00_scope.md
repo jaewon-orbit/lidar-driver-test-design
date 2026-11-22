@@ -28,3 +28,5 @@
 ## Principles
 - Web docs track the latest main branch and may change, so the repository docs/ at the pinned commit is the baseline
 - Confirmed facts and my own assumptions are always marked separately
+- xt32.md and the top of common.md are generated from the schemas. Only hand-written statements in common.md are recorded in the doc_* columns of the inventory
+- Code struct: src/nebula_hesai/nebula_hesai_common/include/nebula_hesai_common/hesai_common.hpp L178-L201 (inherits LidarConfigurationBase, nebula_common.hpp L328)
