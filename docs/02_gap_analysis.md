@@ -48,7 +48,7 @@ File abbreviations:
 - Assumption: The authors intended these constraints to apply, since they wrote them per model. I treat the written constraints as the expected behavior
 - Impact: A param file for the wrong model, an invalid RPM or an unknown return mode passes file validation. Errors appear only at launch, or not at all if the runtime also accepts the value
 - Question: Should these keywords be wrapped in "allOf" with the "$ref", or the schemas moved to draft 2019-09 or later?
-- Linked test cases: TC-SCH-010 to TC-SCH-015 (planned)
+- Linked test cases: TC-SCH-010 to TC-SCH-015, TC-SCH-019 (L1, automated)
 
 ### GAP-002: rotation_speed allowed values differ across three places
 - Category: Inconsistency
@@ -62,7 +62,7 @@ File abbreviations:
 - Assumption: XT32 supports 300, 600 and 1200 RPM (5, 10 and 20 Hz), as the runtime description says. To be confirmed with the vendor manual (source E). The L2 run shows what the driver accepts, not what the sensor supports, so it does not settle this
 - Impact: 900 is accepted by the schema and, as observed at L2, by the runtime range, but is not listed as supported. Once GAP-001 is fixed, values like 360 would pass the schema but fail at launch
 - Question: Is 900 RPM supported on XT32, and which source is authoritative?
-- Linked test cases: TC-SCH-016, TC-RUN-001 (L2, run 2026-11-22)
+- Linked test cases: TC-SCH-018 (L1, automated), TC-RUN-001 (L2, run 2026-11-22). Related: TC-SCH-016 (L1, automated, linked to REQ-ROT-01)
 
 ### GAP-003: ptp_lock_threshold applicability differs between docs and code
 - Category: Inconsistency
@@ -74,7 +74,7 @@ File abbreviations:
 - Assumption: The code reflects actual behavior and the doc is outdated
 - Impact: Users following the doc may treat this value as unused on XT32, while the driver writes it to the sensor. The value decides when the sensor reports locked or tracking, which changes the diagnostic status
 - Question: Is the list in common.md outdated, and does OT128 apply this value in another code path?
-- Linked test cases: TC-PTP-010 (planned, L4)
+- Linked test cases: TC-PTP-010 (L4, not run)
 
 ### GAP-004: additionalProperties at "/**" level has no effect
 - Category: Inconsistency
@@ -85,7 +85,7 @@ File abbreviations:
 - Assumption: The intent is to forbid unknown keys at "/**" level, like one level below
 - Impact: Parameters placed at the wrong level are silently ignored instead of being reported
 - Question: Can the keyword be moved out of "properties"?
-- Linked test cases: TC-SCH-020 (planned)
+- Linked test cases: TC-SCH-020 (L1, automated)
 
 ### GAP-005: multicast_ip pattern accepts any string
 - Category: Inconsistency
@@ -96,7 +96,7 @@ File abbreviations:
 - Assumption: Valid values are an empty string (multicast disabled) or an address in 224.0.0.0 to 239.255.255.255
 - Impact: Typos are only found when the socket is opened
 - Question: Should the pattern be "^$|^(...)$"?
-- Linked test cases: TC-SCH-021 (planned)
+- Linked test cases: TC-SCH-021 (L1, automated)
 
 ### GAP-006: cut_angle range depends on FoV but is checked alone
 - Category: Interaction undefined
@@ -109,7 +109,7 @@ File abbreviations:
 - Assumption: Values outside the doc range are invalid and should be rejected before connecting. For a FoV that crosses 0 deg (e.g. 270 to 90), I assume the valid range also crosses 0 deg
 - Impact: The behavior for an invalid cut_angle (empty or split scans, wrong timestamps) is unknown and can only be checked with recorded data
 - Question: What does the driver do with cut_angle=360 at 360 deg FoV, and how is the range defined for a FoV that crosses 0 deg?
-- Linked test cases: TC-SCH-022, TC-FOV-010 (planned, L3)
+- Linked test cases: TC-SCH-022 (L1, automated), TC-FOV-010 (L3, not run)
 
 ### GAP-007: PTP transport rule is documented as a restriction but handled as auto-correction
 - Category: Inconsistency
@@ -123,7 +123,7 @@ File abbreviations:
 - Assumption: Auto-correction is the intended behavior, and the doc should describe it. I also assume the update at L252 is meant to succeed, so that the parameter shows the value in use. That it fails for the read-only reason is inferred from the external set result, not traced inside rclcpp
 - Impact: The parameter reports UDP while the driver uses L2. Users and tools that read parameters see the wrong value. Only the WARN line and the configuration log show the value in use
 - Question: Should the schema reject this combination, or should the doc describe the auto-correction? Should the update at L252 succeed (for example, by checking its result), so that the parameter matches the value in use?
-- Linked test cases: TC-SCH-023 (planned), TC-RUN-002 (L2, run 2026-11-22: Fail)
+- Linked test cases: TC-SCH-023, TC-SCH-046 (L1, automated), TC-RUN-002 (L2, run 2026-11-22: Fail)
 
 ### GAP-008: Ports and MTU have no upper bound while code uses uint16_t
 - Category: Missing
@@ -137,7 +137,7 @@ File abbreviations:
 - Assumption: Valid ports are 1 to 65535, and MTU must be large enough for one sensor packet (exact minimum to confirm)
 - Impact: A data_port above 65535 is silently wrapped to a different port (observed at L2). With a sensor, the driver would open the data socket on that port (code reading, L228; not observed, because launch_hw=false opens no socket). gnss_port and packet_mtu_size are declared the same way (L158, L192) but were not run
 - Question: Can maximum 65535 be added, and is there a minimum MTU?
-- Linked test cases: TC-SCH-024 to TC-SCH-026, TC-RUN-003 (L2, run 2026-11-22)
+- Linked test cases: TC-SCH-025, TC-SCH-026 (L1, automated), TC-RUN-003 (L2, run 2026-11-22). Related: TC-SCH-024 (L1, automated, linked to REQ-NET-03)
 
 ### GAP-009: min_range and max_range are optional, unordered, with differing defaults
 - Category: Missing
@@ -151,7 +151,7 @@ File abbreviations:
 - Assumption: min_range must be less than max_range. The earlier assumption that omitting min_range fails at launch is confirmed at L2. Omitting max_range was not run
 - Impact: An inverted range would filter out every point (assumption, not run). Schema and runtime disagree on whether min_range is required: the schema marks it optional, the driver does not start without it, and the error does not say which parameter is missing
 - Question: Should both be required, and should the schema enforce min_range < max_range?
-- Linked test cases: TC-SCH-027, TC-RUN-004 (L2, run 2026-11-22)
+- Linked test cases: TC-SCH-027 (L1, automated), TC-RUN-004 (L2, run 2026-11-22)
 
 ### GAP-010: rotation_speed and diagnostics rate bounds must change together
 - Category: Interaction undefined
@@ -175,7 +175,7 @@ File abbreviations:
 - Assumption: The generated docs show 3, while the driver uses 1
 - Impact: The diagnostic status changes after 1 frame instead of 3, so it may flap more than users expect
 - Question: Which default is intended?
-- Linked test cases: TC-DIAG-002 (planned), TC-DIAG-003 (L2, run 2026-11-22)
+- Linked test cases: TC-DIAG-002 (L3, not run), TC-DIAG-003 (L2, run 2026-11-22)
 
 ### GAP-012: "Dual" return mode means different modes per model
 - Category: Ambiguity
@@ -215,7 +215,7 @@ File abbreviations:
 - Assumption: Defaults should have the same type as the parameter
 - Impact: Generated docs and any tool that reads defaults get the wrong type
 - Question: Can defaults be typed consistently?
-- Linked test cases: TC-SCH-030 (planned)
+- Linked test cases: TC-SCH-030 (L1, automated)
 
 ---
 
