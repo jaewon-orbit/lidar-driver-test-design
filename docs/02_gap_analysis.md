@@ -22,13 +22,6 @@ Paths: model schema = src/nebula_hesai/nebula_hesai/schema/PandarXT32.schema.jso
 | C-14 | diag_span is described as "Diagnostics rate" with no unit | topic.json L18-L24 | Check code |
 
 ## Notes from code reading
-- Base structs: nebula_common.hpp L301-L334. data_port (L312) and packet_mtu_size (L331) are uint16_t, so C-10 also applies to them
-- C-07: hesai_ros_wrapper.cpp L244-L252 forces ptp_transport_type to L2 when the profile is not 1588v2, instead of rejecting the value. Doc wording suggests rejection. To check: is a warning logged?
-- C-09: decoder_wrapper.cpp L48 builds rate bounds from sensor_model and rotation_speed. If YAML bounds are not used, C-09 is a false positive. To check
-- diagnostics.json: frequency_ok and frequency_warn only require min_hz (L24, L41). frequency_warn defaults are strings while frequency_ok defaults are numbers (L16-L21 vs L33-L38), supports C-12
-- Parameters are declared with a descriptor in hesai_ros_wrapper.cpp. If descriptors carry ranges, some schema gaps may still be caught at runtime (L2). To check
-
-## Notes from code reading
 Runtime ranges are ROS parameter descriptors in src/nebula_hesai/nebula_hesai/src/hesai_ros_wrapper.cpp.
 - Base structs: nebula_common.hpp L301-L334. data_port (L312) and packet_mtu_size (L331) are uint16_t
 - C-01: rotation_speed allowed values disagree across three places. Schema: 300-1200, multipleOf 60. Runtime range: 300-1200 step 300 (300, 600, 900, 1200). Runtime description: "300, 600, 1200". hesai_ros_wrapper.cpp L199-L212. XT32 supported RPM to check in vendor manual
@@ -39,3 +32,6 @@ Runtime ranges are ROS parameter descriptors in src/nebula_hesai/nebula_hesai/sr
 - C-13: min_range and max_range are declared with no range (L190-L191)
 - Matching ranges (schema and runtime agree): udp_socket_receive_buffer_size_bytes min 256, sync_angle 0-359, cloud_min_angle and cloud_max_angle 0-360, ptp_domain 0-127, ptp_lock_threshold 1-100, dual_return_distance_threshold 0.01-0.5
 - C-09: rate bounds are built from rotation_speed via get_scan_rate_hz (decoder_wrapper.hpp L96-L99). Whether YAML diagnostics bounds are used is still to check
+- C-09 partly confirmed: YAML bounds are used (decoder_wrapper.hpp L101-L110). If the nominal rate from rotation_speed is outside frequency_ok, only a startup WARN is logged (L115-L122). So rotation_speed and diagnostics bounds must be changed together, and this rule is not in the docs
+- C-15 (new): num_frame_transition default is 3 in diagnostics.json L43-L48 but 1 in code (decoder_wrapper.hpp L112-L113). frequency_ok.max_hz and frequency_warn.max_hz default to infinity in code when omitted, which the schema does not describe
+- C-16 (new): "Dual" maps to a different mode per model. XT32: Dual = LastStrongest. QT64: Dual = LastFirst (hesai_common.hpp L617-L657). Docs do not state this. XT32 return_mode enum in schema matches the 7 strings in code
