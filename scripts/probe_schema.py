@@ -4,7 +4,13 @@ This is an exploration script, not the test suite. Each case mutates the
 default XT32 YAML, validates it with check-jsonschema, and compares the
 result with what the docs or other sources say should happen.
 CTRL cases are controls that the schema must reject if the tool works.
+
+Workaround (C-17): the original schema files declare relative "$id" values
+such as "nebula_hesai/schema/lidar_hesai.json". These change the base URI and
+break relative $ref resolution in standard validators. The script copies the
+schemas to a temp dir with the same layout and removes "$id" before validating.
 """
+import json
 import subprocess
 import sys
 import tempfile
@@ -13,7 +19,11 @@ from pathlib import Path
 import yaml
 
 NEBULA = Path("nebula")
-SCHEMA = NEBULA / "src/nebula_hesai/nebula_hesai/schema/PandarXT32.schema.json"
+SCHEMA_DIRS = [
+    Path("src/nebula_hesai/nebula_hesai/schema"),
+    Path("src/nebula_core/nebula_core_ros/schema"),
+]
+MODEL_SCHEMA = Path("src/nebula_hesai/nebula_hesai/schema/PandarXT32.schema.json")
 PARAM = NEBULA / "src/nebula_hesai/nebula_hesai/config/PandarXT32.param.yaml"
 
 
@@ -68,39 +78,62 @@ CASES = [
 ]
 
 
-def validate(doc, tmpdir, case_id):
-    path = Path(tmpdir) / f"{case_id}.yaml"
+def prepare_schemas(workdir):
+    """Copy schemas keeping the repo layout and drop "$id" (see module docstring)."""
+    for rel in SCHEMA_DIRS:
+        for src in (NEBULA / rel).glob("*.json"):
+            data = json.loads(src.read_text())
+            data.pop("$id", None)
+            dst = workdir / rel / src.name
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            dst.write_text(json.dumps(data, indent=2))
+    return workdir / MODEL_SCHEMA
+
+
+def validate(schema, doc, workdir, case_id):
+    path = workdir / f"{case_id}.yaml"
     path.write_text(yaml.safe_dump(doc, sort_keys=False))
     result = subprocess.run(
-        ["check-jsonschema", "--schemafile", str(SCHEMA), str(path)],
+        ["check-jsonschema", "--schemafile", str(schema), str(path)],
         capture_output=True,
         text=True,
     )
-    return result.returncode, (result.stdout + result.stderr).strip()
+    log = (result.stdout + result.stderr).strip()
+    if result.returncode == 0:
+        return "pass", log
+    if result.returncode == 1 and "Schema validation errors" in log:
+        return "reject", log
+    return f"error({result.returncode})", log
 
 
 def main():
     base_text = PARAM.read_text()
-    rows, details = [], []
-    with tempfile.TemporaryDirectory() as tmpdir:
+    with tempfile.TemporaryDirectory() as tmp:
+        workdir = Path(tmp)
+
+        raw_result, _ = validate(NEBULA / MODEL_SCHEMA, yaml.safe_load(base_text), workdir, "RAW")
+        print(f"Original schema files, default YAML: {raw_result}\n")
+
+        schema = prepare_schemas(workdir)
+        rows, details = [], []
         for case_id, desc, mutate, expected in CASES:
             doc = yaml.safe_load(base_text)
             mutate(doc)
-            code, log = validate(doc, tmpdir, case_id)
-            actual = {0: "pass", 1: "reject"}.get(code, f"error({code})")
+            actual, log = validate(schema, doc, workdir, case_id)
             if expected == "unclear":
                 match = "-"
             else:
                 match = "yes" if actual == expected else "NO"
             rows.append((case_id, desc, expected, actual, match))
             if actual != "pass":
-                details.append(f"[{case_id}]\n{log}\n")
+                short = "\n".join(log.splitlines()[:6])
+                details.append(f"[{case_id}]\n{short}\n")
 
     print("| case | description | expected | actual | match |")
     print("|---|---|---|---|---|")
     for row in rows:
         print("| " + " | ".join(row) + " |")
-    print("\n## Details for non-pass cases\n")
+    print("\n## Details for non-pass cases (first lines)\n")
     print("\n".join(details))
     return 0
 
