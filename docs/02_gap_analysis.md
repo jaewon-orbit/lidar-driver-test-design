@@ -27,3 +27,15 @@ Paths: model schema = src/nebula_hesai/nebula_hesai/schema/PandarXT32.schema.jso
 - C-09: decoder_wrapper.cpp L48 builds rate bounds from sensor_model and rotation_speed. If YAML bounds are not used, C-09 is a false positive. To check
 - diagnostics.json: frequency_ok and frequency_warn only require min_hz (L24, L41). frequency_warn defaults are strings while frequency_ok defaults are numbers (L16-L21 vs L33-L38), supports C-12
 - Parameters are declared with a descriptor in hesai_ros_wrapper.cpp. If descriptors carry ranges, some schema gaps may still be caught at runtime (L2). To check
+
+## Notes from code reading
+Runtime ranges are ROS parameter descriptors in src/nebula_hesai/nebula_hesai/src/hesai_ros_wrapper.cpp.
+- Base structs: nebula_common.hpp L301-L334. data_port (L312) and packet_mtu_size (L331) are uint16_t
+- C-01: rotation_speed allowed values disagree across three places. Schema: 300-1200, multipleOf 60. Runtime range: 300-1200 step 300 (300, 600, 900, 1200). Runtime description: "300, 600, 1200". hesai_ros_wrapper.cpp L199-L212. XT32 supported RPM to check in vendor manual
+- C-06: cut_angle runtime range is 0-360 step 0.01 with no FoV relation (L169-L176). Description says "Cannot be equal to the start angle in a non-360 deg FoV", which is worded differently from common.md L107
+- C-07 confirmed: a WARN is logged and the parameter is overwritten to L2 (L243-L253). Doc wording suggests rejection, code auto-corrects
+- C-08 contradicts docs: hesai_hw_interface.cpp L1164-L1176 applies ptp_lock_threshold to Pandar128E4X, QT128, XT16, XT32, XT32M. Doc says it only applies to OT128 and QT128, and OT128 is not in this list
+- C-10: data_port, gnss_port (L157-L158) and packet_mtu_size (L192) are declared as uint16_t with no range. Overflow behavior to check at L2
+- C-13: min_range and max_range are declared with no range (L190-L191)
+- Matching ranges (schema and runtime agree): udp_socket_receive_buffer_size_bytes min 256, sync_angle 0-359, cloud_min_angle and cloud_max_angle 0-360, ptp_domain 0-127, ptp_lock_threshold 1-100, dual_return_distance_threshold 0.01-0.5
+- C-09: rate bounds are built from rotation_speed via get_scan_rate_hz (decoder_wrapper.hpp L96-L99). Whether YAML diagnostics bounds are used is still to check
