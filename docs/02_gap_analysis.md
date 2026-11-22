@@ -20,3 +20,10 @@ Paths: model schema = src/nebula_hesai/nebula_hesai/schema/PandarXT32.schema.jso
 | C-12 | Schema defaults are strings for integer and boolean types ("600", "true"), and multicast_ip default is two quote characters as text | hesai schema L32, L47; hardware.json L8 | Note, check generated docs |
 | C-13 | No rule that min_range must be less than max_range | misc.json L66-L77 | L1: min_range=200, max_range=100 |
 | C-14 | diag_span is described as "Diagnostics rate" with no unit | topic.json L18-L24 | Check code |
+
+## Notes from code reading
+- Base structs: nebula_common.hpp L301-L334. data_port (L312) and packet_mtu_size (L331) are uint16_t, so C-10 also applies to them
+- C-07: hesai_ros_wrapper.cpp L244-L252 forces ptp_transport_type to L2 when the profile is not 1588v2, instead of rejecting the value. Doc wording suggests rejection. To check: is a warning logged?
+- C-09: decoder_wrapper.cpp L48 builds rate bounds from sensor_model and rotation_speed. If YAML bounds are not used, C-09 is a false positive. To check
+- diagnostics.json: frequency_ok and frequency_warn only require min_hz (L24, L41). frequency_warn defaults are strings while frequency_ok defaults are numbers (L16-L21 vs L33-L38), supports C-12
+- Parameters are declared with a descriptor in hesai_ros_wrapper.cpp. If descriptors carry ranges, some schema gaps may still be caught at runtime (L2). To check

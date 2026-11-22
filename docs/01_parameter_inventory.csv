@@ -1,34 +1,34 @@
 param,doc_type,doc_default,doc_range,schema_type,schema_default,schema_range_or_enum,yaml_value,code_type,consistent,note
-host_ip,,,,string,255.255.255.255,IPv4 pattern,192.168.1.10,TBD (base class),Y,Core default differs from model YAML (override)
-sensor_ip,,,,string,192.168.1.201,IPv4 pattern,192.168.1.201,TBD (base class),Y,
+host_ip,,,,string,255.255.255.255,IPv4 pattern,192.168.1.10,std::string,Y,Core default differs from model YAML (override)
+sensor_ip,,,,string,192.168.1.201,IPv4 pattern,192.168.1.201,std::string,Y,
 multicast_ip,,,,string,two quote characters as text,"224-239.x.x.x or empty (pattern ends with |)",(empty),std::string,N,C-05 C-12
-data_port,,,,integer,2368,min 0 (no max),2368,TBD (base class),N,C-10
+data_port,,,,integer,2368,min 0 (no max),2368,uint16_t,N,C-10
 gnss_port,,,,integer,10110 (core: 2369),min 0 (no max),10110,uint16_t,N,C-10; model default is a $ref sibling (C-01)
 udp_socket_receive_buffer_size_bytes,,,,integer,5400000,min 256,5400000,size_t,Y,
-packet_mtu_size,,,,integer,1500,min 0 (no max),1500,TBD (base class),N,C-10
-launch_hw,,,,boolean,true,,true,TBD (base class),Y,readOnly
-setup_sensor,,,,boolean,true,,true,TBD (base class),Y,readOnly
-udp_only,,,,boolean,false,,false,TBD (base class),Y,readOnly
-frame_id,,,,string,data_link,,hesai,TBD (base class),Y,Core default differs from model YAML (override)
-diag_span,,,,integer,1000,min 1,1000,TBD (base class),N,C-14
-min_range,,,,number,0.3,min 0,0.05,TBD (base class),N,C-03 C-13
-max_range,,,,number,300.0,min 0,120.0,TBD (base class),N,C-03 C-13
+packet_mtu_size,,,,integer,1500,min 0 (no max),1500,uint16_t,N,C-10
+launch_hw,,,,boolean,true,,true,not in struct (ROS node only),Y,readOnly
+setup_sensor,,,,boolean,true,,true,not in struct (ROS node only),Y,readOnly
+udp_only,,,,boolean,false,,false,not in struct (ROS node only),Y,readOnly
+frame_id,,,,string,data_link,,hesai,std::string,Y,Core default differs from model YAML (override)
+diag_span,,,,integer,1000,min 1,1000,not in struct (ROS node only),N,C-14
+min_range,,,,number,0.3,min 0,0.05,double,N,C-03 C-13
+max_range,,,,number,300.0,min 0,120.0,double,N,C-03 C-13
 cloud_min_angle,degrees,,"0-360, may cross 360->0 (e.g. 270 to 90)",integer,0,0-360,0,uint16_t,N,C-11
 cloud_max_angle,degrees,,"0-360, may cross 360->0 (e.g. 270 to 90)",integer,360,0-360,360,uint16_t,N,C-11
 sync_angle,degrees (encoder angle),,,integer,0,0-359,0,uint16_t,Y,
 cut_angle,degrees (corrected angle),,"(cloud_min_angle, cloud_max_angle], or [0, 360) for 360 deg FoV",number,0.0,0-360,0.0,double,N,C-06
-sensor_model,,,,string,,"PandarXT32 (model schema), 10 Hesai models (hesai schema)",PandarXT32,TBD (base class),N,C-01
+sensor_model,,,,string,,"PandarXT32 (model schema), 10 Hesai models (hesai schema)",PandarXT32,SensorModel (enum),N,C-01
 calibration_file,,,,string,.../calibration/$(var sensor_model).csv,,.../calibration/$(var sensor_model).csv,std::string (calibration_path),Y,Param name differs from struct field name
 calibration_download_enabled,,,,boolean,true,,true,bool,Y,
 rotation_speed,,,,integer,600,"300-1200, multipleOf 60",600,uint16_t,N,C-01 C-09; XT32 supported RPM to check in vendor manual
-return_mode,,,,string,,"Last, Strongest, LastStrongest, First, LastFirst, FirstStrongest, Dual",Dual,TBD,N,C-01; XT32 supported modes to check in vendor manual
+return_mode,,,,string,,"Last, Strongest, LastStrongest, First, LastFirst, FirstStrongest, Dual",Dual,ReturnMode (enum),N,C-01; XT32 supported modes to check in vendor manual
 ptp_profile,,,"1588v2, 802.1as, automotive",string,1588v2,"1588v2, 802.1as, automotive",1588v2,PtpProfile (enum),Y,Doc says support varies by sensor; XT32 support not stated
 ptp_domain,,,,integer,0,0-127,0,uint8_t,Y,
 ptp_transport_type,,,"UDP or L2; only L2 for 802.1as and automotive",string,UDP,"UDP, L2",UDP,PtpTransportType (enum),N,C-07
 ptp_switch_type,,,"TSN or NON_TSN",string,TSN,"TSN, NON_TSN",TSN,PtpSwitchType (enum),N,Schema says 'For automotive profile'; effect on other profiles unclear
 ptp_lock_threshold,microseconds,,Only applies to OT128 and QT128,integer,100,1-100,100,uint8_t,N,C-08
-retry_hw,,,,boolean,true,,true,TBD (base class),Y,
+retry_hw,,,,boolean,true,,true,not in struct (ROS node only),Y,
 dual_return_distance_threshold,,,,number,0.1,0.01-0.5,0.1,double,Y,Effect in single return modes not stated
 point_filters,,,,object,,downsample_mask.path (string),(absent),std::optional<std::string> (downsample_mask_path),Y,Optional
-diagnostics,,,,object,,pointcloud_publish_rate required ($ref sibling),"ok 9.5-10.5 Hz, warn 9.0-11.0 Hz",TBD,N,C-01 C-09
+diagnostics,,,,object,,pointcloud_publish_rate required ($ref sibling),"ok 9.5-10.5 Hz, warn 9.0-11.0 Hz",not in struct (ROS node only),N,C-01 C-09
 sync_diagnostics,,,,object,,topic required,(absent),std::optional<std::string> (sync_diagnostics_topic),Y,Optional
