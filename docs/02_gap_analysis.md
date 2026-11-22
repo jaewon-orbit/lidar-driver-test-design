@@ -127,6 +127,7 @@ File abbreviations:
 - Impact: The parameter reports UDP while the driver uses L2. Users and tools that read parameters see the wrong value. Only the WARN line and the configuration log show the value in use
 - Question: Should the schema reject this combination, or should the doc describe the auto-correction? Should the update at L252 succeed (for example, by checking its result), so that the parameter matches the value in use?
 - Linked test cases: TC-SCH-023, TC-SCH-046 (L1, automated), TC-RUN-002 (L2, run 2026-11-22: Fail)
+- Upstream issue: https://github.com/tier4/nebula/issues/564 (reported 2026-11-23)
 
 ### GAP-008: Ports and MTU have no upper bound while code uses uint16_t
 - Category: Missing
