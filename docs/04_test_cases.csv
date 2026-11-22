@@ -1,0 +1,64 @@
+tc_id,title,req_or_gap,technique,precondition,input,expected,basis,priority,executable_level
+TC-SCH-001,Default config passes schema,REQ-SCH-01,EP,Default XT32 YAML,No change,Passes schema,Schema,High,L1
+TC-SCH-002,Missing required parameter is rejected,REQ-SCH-01,EP,Default XT32 YAML,Remove sync_angle,Rejected by schema,Schema,High,L1
+TC-SCH-003,Unknown parameter is rejected,REQ-SCH-01,EP,Default XT32 YAML,Add unknown_key=1 inside ros__parameters,Rejected by schema,Schema,High,L1
+TC-SCH-004,Wrong type for rotation_speed is rejected,REQ-ROT-01,EP,Default XT32 YAML,"rotation_speed=""600"" (string)",Rejected by schema,Schema,Medium,L1
+TC-SCH-005,FoV start at lower bound,REQ-FOV-01,BVA,Default XT32 YAML,cloud_min_angle=0,Passes schema,Schema,High,L1
+TC-SCH-006,FoV start below lower bound,REQ-FOV-01,BVA,Default XT32 YAML,cloud_min_angle=-1,Rejected by schema,Schema,High,L1
+TC-SCH-007,FoV end at upper bound,REQ-FOV-01,BVA,Default XT32 YAML,cloud_max_angle=360,Passes schema,Schema,High,L1
+TC-SCH-008,FoV end above upper bound,REQ-FOV-01,BVA,Default XT32 YAML,cloud_max_angle=361,Rejected by schema,Schema,High,L1
+TC-SCH-009,Non-integer FoV angle is rejected,REQ-FOV-01,EP,Default XT32 YAML,cloud_min_angle=1.5,Rejected by schema,Schema,Medium,L1
+TC-SCH-010,rotation_speed not a multiple of 60 is rejected,GAP-001,EP,Default XT32 YAML,rotation_speed=123,Rejected by schema (known gap: currently passes),Schema,High,L1
+TC-SCH-011,Other Hesai model name is rejected in XT32 file,GAP-001,EP,Default XT32 YAML,sensor_model=PandarAT128,Rejected by schema (known gap: currently passes),Schema,High,L1
+TC-SCH-012,Unknown model name is rejected,GAP-001,EP,Default XT32 YAML,sensor_model=NotAModel,Rejected by schema (known gap: currently passes),Schema,High,L1
+TC-SCH-013,Unknown return mode is rejected,GAP-001,EP,Default XT32 YAML,return_mode=NotAMode,Rejected by schema (known gap: currently passes),Schema,High,L1
+TC-SCH-014,Diagnostics without publish rate bounds is rejected,GAP-001,EP,Default XT32 YAML,diagnostics={},Rejected by schema (known gap: currently passes),Schema,Medium,L1
+TC-SCH-015,rotation_speed above maximum is rejected,GAP-001,BVA,Default XT32 YAML,rotation_speed=1260,Rejected by schema (known gap: currently passes),Schema,High,L1
+TC-SCH-016,rotation_speed at lower bound,REQ-ROT-01,BVA,Default XT32 YAML,rotation_speed=300,Passes schema,Schema,High,L1
+TC-SCH-017,rotation_speed at upper bound,REQ-ROT-01,BVA,Default XT32 YAML,rotation_speed=1200,Passes schema,Schema,High,L1
+TC-SCH-018,rotation_speed 900 is handled as unsupported,GAP-002,EP,Default XT32 YAML,rotation_speed=900,"(assumption) Rejected, since XT32 supports 300, 600 and 1200 only",Assumption,Medium,L1
+TC-SCH-019,rotation_speed below minimum is rejected,GAP-001,BVA,Default XT32 YAML,rotation_speed=240,Rejected by schema (known gap: currently passes),Schema,High,L1
+TC-SCH-020,Unknown key next to ros__parameters is rejected,GAP-004,EP,Default XT32 YAML,"Add unknown_key=1 under ""/**""",Rejected by schema (known gap: currently passes),Schema,Medium,L1
+TC-SCH-021,Invalid multicast address is rejected,GAP-005,EP,Default XT32 YAML,multicast_ip=not-an-ip,Rejected by schema (known gap: currently passes),Schema,Medium,L1
+TC-SCH-022,cut_angle outside the documented range is rejected,GAP-006,Interaction,FoV 0 to 360,cut_angle=360,Rejected by schema (known gap: currently passes),Doc,High,L1
+TC-SCH-023,L2-only profile with UDP is rejected,GAP-007,Decision table,Default XT32 YAML,"ptp_profile=802.1as, ptp_transport_type=UDP",Rejected by schema (known gap: currently passes),Doc,Medium,L1
+TC-SCH-024,data_port at highest valid port,REQ-NET-03,BVA,Default XT32 YAML,data_port=65535,Passes schema,Schema,Medium,L1
+TC-SCH-025,data_port above 65535 is rejected,GAP-008,BVA,Default XT32 YAML,data_port=65536,"(assumption) Rejected, since the code type is uint16_t (known gap: currently passes)",Assumption,High,L1
+TC-SCH-026,MTU of 0 is rejected,GAP-008,BVA,Default XT32 YAML,packet_mtu_size=0,(assumption) Rejected (known gap: currently passes),Assumption,Medium,L1
+TC-SCH-027,min_range above max_range is rejected,GAP-009,Interaction,Default XT32 YAML,"min_range=200, max_range=100",(assumption) Rejected (known gap: currently passes),Assumption,High,L1
+TC-SCH-028,ptp_domain at upper bound,REQ-PTP-02,BVA,Default XT32 YAML,ptp_domain=127,Passes schema,Schema,Medium,L1
+TC-SCH-029,ptp_domain above upper bound,REQ-PTP-02,BVA,Default XT32 YAML,ptp_domain=128,Rejected by schema,Schema,Medium,L1
+TC-SCH-030,Schema defaults match declared types,GAP-015,Static review,All Hesai and core schema files,Every definition that has both type and default,Default value has the declared type (known gap: several are strings),Schema,Low,L1
+TC-SCH-031,ptp_lock_threshold below lower bound,REQ-PTP-05,BVA,Default XT32 YAML,ptp_lock_threshold=0,Rejected by schema,Schema,Medium,L1
+TC-SCH-032,ptp_lock_threshold above upper bound,REQ-PTP-05,BVA,Default XT32 YAML,ptp_lock_threshold=101,Rejected by schema,Schema,Medium,L1
+TC-SCH-033,sync_angle at upper bound,REQ-SYNC-01,BVA,Default XT32 YAML,sync_angle=359,Passes schema,Schema,Medium,L1
+TC-SCH-034,sync_angle above upper bound,REQ-SYNC-01,BVA,Default XT32 YAML,sync_angle=360,Rejected by schema,Schema,Medium,L1
+TC-SCH-035,Dual return threshold at lower bound,REQ-DRT-01,BVA,Default XT32 YAML,dual_return_distance_threshold=0.01,Passes schema,Schema,Low,L1
+TC-SCH-036,Dual return threshold below lower bound,REQ-DRT-01,BVA,Default XT32 YAML,dual_return_distance_threshold=0.005,Rejected by schema,Schema,Low,L1
+TC-SCH-037,Invalid sensor IP is rejected,REQ-NET-01,EP,Default XT32 YAML,sensor_ip=192.168.1.256,Rejected by schema,Schema,High,L1
+TC-SCH-038,UDP buffer below minimum is rejected,REQ-NET-04,BVA,Default XT32 YAML,udp_socket_receive_buffer_size_bytes=255,Rejected by schema,Schema,Medium,L1
+TC-SCH-039,Unknown PTP profile is rejected,REQ-PTP-01,EP,Default XT32 YAML,ptp_profile=gPTP,Rejected by schema,Schema,Medium,L1
+TC-SCH-040,Every documented XT32 return mode passes,REQ-RM-01,EP,Default XT32 YAML,"return_mode in Last, Strongest, LastStrongest, First, LastFirst, FirstStrongest, Dual",Each value passes schema,Schema,High,L1
+TC-SCH-041,Empty multicast address passes,REQ-NET-02,EP,Default XT32 YAML,"multicast_ip="""" (empty)",Passes schema,Schema,Medium,L1
+TC-RUN-001,rotation_speed 900 at launch,GAP-002,EP,"ROS 2 container, launch_hw=false",rotation_speed=900,"(assumption) Rejected at launch. Record whether the node starts",Assumption,Medium,L2
+TC-RUN-002,L2-only profile with UDP at launch,GAP-007,Decision table,"ROS 2 container, launch_hw=false","ptp_profile=802.1as, ptp_transport_type=UDP",WARN is logged and ptp_transport_type reads L2 after start,Code,High,L2
+TC-RUN-003,data_port above 65535 at launch,GAP-008,BVA,"ROS 2 container, launch_hw=false",data_port=70000,(assumption) Rejected at launch. Record the port the node actually uses,Assumption,High,L2
+TC-RUN-004,min_range omitted at launch,GAP-009,EP,"ROS 2 container, launch_hw=false",Remove min_range,(assumption) Launch fails because the parameter has no default,Assumption,Medium,L2
+TC-RUN-005,rotation_speed valid in schema but not in runtime range,REQ-ROT-01,BVA,"ROS 2 container, launch_hw=false",rotation_speed=360,Rejected by the parameter descriptor at launch,Code,High,L2
+TC-RUN-006,Default config starts without a sensor,REQ-SCH-01,EP,"ROS 2 container, launch_hw=false",Default XT32 YAML,Node starts and logs the configuration,Code,High,L2
+TC-FOV-011,Equal FoV start and end,GAP-013,BVA,"ROS 2 container, launch_hw=false","cloud_min_angle=90, cloud_max_angle=90",(assumption) Rejected at launch,Assumption,Medium,L2
+TC-RM-001,Dual on XT32 maps to last and strongest,GAP-012,Decision table,"ROS 2 container, launch_hw=false",return_mode=Dual,Logged return mode is the dual last and strongest mode,Code,Medium,L2
+TC-RM-002,LastStrongest behaves the same as Dual on XT32,GAP-012,EP,"ROS 2 container, launch_hw=false",return_mode=LastStrongest,Same logged return mode as TC-RM-001,Code,Low,L2
+TC-DIAG-001,rotation_speed changed without diagnostics bounds,GAP-010,Interaction,"ROS 2 container, launch_hw=false",rotation_speed=1200 with default bounds,Startup WARN that the framerate is outside the configured bounds,Code,Medium,L2
+TC-DIAG-002,Rate status transition delay,GAP-011,State transition,XT32 rosbag with a gap in packets,num_frame_transition not set,(assumption) Status changes after 3 frames as documented,Assumption,Medium,L3
+TC-FOV-001,Full FoV output,REQ-FOV-03,EP,XT32 rosbag,"cloud_min_angle=0, cloud_max_angle=360",Points cover the full 0 to 360 deg range,Doc,High,L3
+TC-FOV-002,Partial FoV output,REQ-FOV-03,BVA,XT32 rosbag,"cloud_min_angle=90, cloud_max_angle=315","(assumption) All point azimuths are in [90, 315] within 0.1 deg. Tolerance is not documented",Assumption,High,L3
+TC-FOV-003,FoV crossing 0 deg,REQ-FOV-02,EP,XT32 rosbag,"cloud_min_angle=270, cloud_max_angle=90","Point azimuths are only in [270, 360) and [0, 90]",Doc,High,L3
+TC-FOV-010,cut_angle 360 with full FoV,GAP-006,Interaction,XT32 rosbag,"FoV 0 to 360, cut_angle=360",(assumption) Rejected. If accepted record scan size and timestamps,Assumption,Medium,L3
+TC-CUT-001,Scan timing with cut at FoV end,REQ-CUT-01,Decision table,PTP-synced XT32 rosbag,"cloud_min_angle=90, cloud_max_angle=315, cut_angle=315, sync_angle=30",Scan timestamp ToS + 17 ms and latency 63 ms (common.md L89),Doc,Medium,L3
+TC-CUT-002,Scan timing with cut inside full FoV,REQ-CUT-01,Decision table,PTP-synced XT32 rosbag,"cloud_min_angle=0, cloud_max_angle=360, cut_angle=180, sync_angle=0",Scan timestamp ToS + 50 ms and latency 100 ms (common.md L86),Doc,Medium,L3
+TC-PTP-001,Locked state is OK,REQ-PTP-06,State transition,"XT32, PTP master, 1588v2",Sensor locked to master,Hardware monitor reports OK,Doc,High,L4
+TC-PTP-002,Locked to tracking,REQ-PTP-06,State transition,"XT32 in locked state",Offset above ptp_lock_threshold,Hardware monitor reports WARNING,Doc,High,L4
+TC-PTP-003,Tracking to free run,REQ-PTP-06,State transition,"XT32 in tracking state",Disconnect PTP master,Hardware monitor reports ERROR,Doc,High,L4
+TC-PTP-004,Free run back to locked,REQ-PTP-06,State transition,"XT32 in free run state",Reconnect PTP master,(assumption) Returns to OK within one diag_span. Timing is not documented,Assumption,Medium,L4
+TC-PTP-010,Lock threshold is written to XT32,GAP-003,EP,"XT32, PTP master",ptp_lock_threshold=50,Driver logs the lock offset change and the sensor reports 50,Code,High,L4
