@@ -1,39 +1,234 @@
 # 02. Gap Analysis
 
-## Candidates (unverified)
-These are hypotheses found while reading sources. Each will be verified before being promoted to a GAP entry.
-Paths: model schema = src/nebula_hesai/nebula_hesai/schema/PandarXT32.schema.json, hesai schema = src/nebula_hesai/nebula_hesai/schema/lidar_hesai.json, core schemas = src/nebula_core/nebula_core_ros/schema/*.json
+Baseline: tier4/nebula 4e02244, Pandar XT32. See 00_scope.md.
 
-| ID | Summary | Source | How to verify |
+## Method
+1. Read sources A to D and record candidates (C-xx)
+2. Verify each candidate: schema behavior with scripts/probe_schema.py (L1), code reading for runtime behavior
+3. Promote verified candidates to GAP entries. Merge candidates with the same root cause
+4. Mark every assumption as an assumption. Facts come with a file and line reference
+
+File abbreviations:
+- model schema: src/nebula_hesai/nebula_hesai/schema/PandarXT32.schema.json
+- hesai schema: src/nebula_hesai/nebula_hesai/schema/lidar_hesai.json
+- core schemas: src/nebula_core/nebula_core_ros/schema/*.json
+- wrapper: src/nebula_hesai/nebula_hesai/src/hesai_ros_wrapper.cpp
+- probe: docs/evidence/probe-2026-11-22.md
+
+## Summary
+
+| ID | Title | Category | Verified by |
 |---|---|---|---|
-| C-01 | Keywords next to $ref may be ignored under draft-07. Affected: sensor_model enum, return_mode enum, diagnostics required (model schema), sensor_model enum, rotation_speed min/max/multipleOf, gnss_port default/minimum (hesai schema) | model schema L63-L66, L76-L87, L112-L115; hesai schema L6-L20, L34-L38, L45-L51 | L1: rotation_speed=123, sensor_model=PandarAT128 |
-| C-02 | "additionalProperties": false sits inside "properties" of "/**", so it may act as a property name instead of a rule | model schema L161 | L1: add an unknown key under "/**" |
-| C-03 | min_range and max_range are not required, while most other parameters are | model schema L120-L150 | Check code defaults when omitted |
-| C-04 | xt32.md and the top of common.md are generated from schemas, so only hand-written parts of common.md can disagree with the schema | xt32.md L1, common.md L3 | Note in scope |
-| C-05 | multicast_ip pattern ends with "|", an empty alternative that may match any string | communication.json L54 | L1: multicast_ip="not-an-ip" |
-| C-06 | Doc limits cut_angle to (cloud_min_angle, cloud_max_angle], or [0, 360) for 360 deg FoV, but schema allows 0-360 regardless of FoV. Wrap-around FoV case (e.g. 270 to 90) is not described | common.md L107; hesai schema L91-L97 | L1: cut_angle=360 with FoV 0-360 |
-| C-07 | Doc says only L2 is allowed for 802.1as and automotive, but schema does not enforce it. Schema already uses if/then elsewhere | common.md L19; hesai schema L65-L70, L150-L163 | L1: ptp_profile=802.1as, ptp_transport_type=UDP |
-| C-08 | Doc says ptp_lock_threshold only applies to OT128 and QT128, but it is required in the XT32 schema | common.md L29; model schema L146 | Check code for XT32 handling |
-| C-09 | Diagnostics publish rate bounds assume 10 Hz and are not tied to rotation_speed. rotation_speed=1200 (20 Hz) may trigger false errors | PandarXT32.param.yaml L24, L33-L38 | Check how diagnostics are evaluated in code |
-| C-10 | data_port, gnss_port, packet_mtu_size have minimum 0 and no maximum. gnss_port is uint16_t in code | communication.json L20-L26, L32-L38, L58-L64; hesai_common.hpp L181 | L1: gnss_port=70000, packet_mtu_size=0 |
-| C-11 | Behavior for cloud_min_angle == cloud_max_angle, or cloud_min_angle=360, is not defined | common.md L93-L94; misc.json L17-L30 | Check code |
-| C-12 | Schema defaults are strings for integer and boolean types ("600", "true"), and multicast_ip default is two quote characters as text | hesai schema L32, L47; hardware.json L8 | Note, check generated docs |
-| C-13 | No rule that min_range must be less than max_range | misc.json L66-L77 | L1: min_range=200, max_range=100 |
-| C-14 | diag_span is described as "Diagnostics rate" with no unit | topic.json L18-L24 | Check code |
+| GAP-001 | Model-specific schema constraints are not enforced | Inconsistency | probe (L1) |
+| GAP-002 | rotation_speed allowed values differ across three places | Inconsistency | code reading |
+| GAP-003 | ptp_lock_threshold applicability differs between docs and code | Inconsistency | code reading |
+| GAP-004 | additionalProperties at "/**" level has no effect | Inconsistency | probe (L1) |
+| GAP-005 | multicast_ip pattern accepts any string | Inconsistency | probe (L1) |
+| GAP-006 | cut_angle range depends on FoV but is checked alone | Interaction undefined | probe (L1), code reading |
+| GAP-007 | PTP transport rule is documented as a restriction but handled as auto-correction | Inconsistency | probe (L1), code reading |
+| GAP-008 | Ports and MTU have no upper bound while code uses uint16_t | Missing | probe (L1), code reading |
+| GAP-009 | min_range and max_range are optional, unordered, with differing defaults | Missing | probe (L1), code reading |
+| GAP-010 | rotation_speed and diagnostics rate bounds must change together | Interaction undefined | code reading |
+| GAP-011 | num_frame_transition default differs between schema and code | Inconsistency | code reading |
+| GAP-012 | "Dual" return mode means different modes per model | Ambiguity | code reading |
+| GAP-013 | Degenerate FoV settings are not defined | Ambiguity | doc reading |
+| GAP-014 | diag_span has no unit | Missing | doc reading |
+| GAP-015 | Schema defaults are strings for numeric and boolean types | Inconsistency | doc reading |
 
-## Notes from code reading
-Runtime ranges are ROS parameter descriptors in src/nebula_hesai/nebula_hesai/src/hesai_ros_wrapper.cpp.
-- Base structs: nebula_common.hpp L301-L334. data_port (L312) and packet_mtu_size (L331) are uint16_t
-- C-01: rotation_speed allowed values disagree across three places. Schema: 300-1200, multipleOf 60. Runtime range: 300-1200 step 300 (300, 600, 900, 1200). Runtime description: "300, 600, 1200". hesai_ros_wrapper.cpp L199-L212. XT32 supported RPM to check in vendor manual
-- C-06: cut_angle runtime range is 0-360 step 0.01 with no FoV relation (L169-L176). Description says "Cannot be equal to the start angle in a non-360 deg FoV", which is worded differently from common.md L107
-- C-07 confirmed: a WARN is logged and the parameter is overwritten to L2 (L243-L253). Doc wording suggests rejection, code auto-corrects
-- C-08 contradicts docs: hesai_hw_interface.cpp L1164-L1176 applies ptp_lock_threshold to Pandar128E4X, QT128, XT16, XT32, XT32M. Doc says it only applies to OT128 and QT128, and OT128 is not in this list
-- C-10: data_port, gnss_port (L157-L158) and packet_mtu_size (L192) are declared as uint16_t with no range. Overflow behavior to check at L2
-- C-13: min_range and max_range are declared with no range (L190-L191)
-- Matching ranges (schema and runtime agree): udp_socket_receive_buffer_size_bytes min 256, sync_angle 0-359, cloud_min_angle and cloud_max_angle 0-360, ptp_domain 0-127, ptp_lock_threshold 1-100, dual_return_distance_threshold 0.01-0.5
-- C-09: rate bounds are built from rotation_speed via get_scan_rate_hz (decoder_wrapper.hpp L96-L99). Whether YAML diagnostics bounds are used is still to check
-- C-09 partly confirmed: YAML bounds are used (decoder_wrapper.hpp L101-L110). If the nominal rate from rotation_speed is outside frequency_ok, only a startup WARN is logged (L115-L122). So rotation_speed and diagnostics bounds must be changed together, and this rule is not in the docs
-- C-15 (new): num_frame_transition default is 3 in diagnostics.json L43-L48 but 1 in code (decoder_wrapper.hpp L112-L113). frequency_ok.max_hz and frequency_warn.max_hz default to infinity in code when omitted, which the schema does not describe
-- C-16 (new): "Dual" maps to a different mode per model. XT32: Dual = LastStrongest. QT64: Dual = LastFirst (hesai_common.hpp L617-L657). Docs do not state this. XT32 return_mode enum in schema matches the 7 strings in code
-- C-17 (new): schema files declare relative "$id" values (lidar_hesai.json L168: "nebula_hesai/schema/lidar_hesai.json"; core schemas: "nebula_ros_base/schema/*.json", an old package name). These change the base URI, so check-jsonschema cannot resolve relative $ref targets ("Failure resolving $ref within schema"). scripts/probe_schema.py works around this by removing "$id" from temp copies
-- Lesson: the first probe run reported every case as "reject" because tool errors and validation errors share exit code 1. The BASE case caught it. The probe now separates pass, reject and error
+---
+
+### GAP-001: Model-specific schema constraints are not enforced
+- Category: Inconsistency (written constraints vs effective behavior)
+- Parameters: sensor_model, return_mode, rotation_speed, gnss_port, diagnostics
+- Evidence:
+  - Schema: enum, minimum, maximum, multipleOf and required are written next to "$ref" in model schema L63-L66, L76-L87, L112-L115 and hesai schema L6-L20, L34-L38, L45-L51. The schemas declare draft-07 (L2), where keywords next to "$ref" are ignored
+  - Probe: rotation_speed=123, sensor_model=NotAModel, sensor_model=PandarAT128, return_mode=NotAMode and diagnostics without pointcloud_publish_rate all pass (C-01a to C-01f)
+  - Control: constraints without "$ref" work (cloud_min_angle=-1 and ptp_domain=128 are rejected)
+- Assumption: The authors intended these constraints to apply, since they wrote them per model. I treat the written constraints as the expected behavior
+- Impact: A param file for the wrong model, an invalid RPM or an unknown return mode passes file validation. Errors appear only at launch, or not at all if the runtime also accepts the value
+- Question: Should these keywords be wrapped in "allOf" with the "$ref", or the schemas moved to draft 2019-09 or later?
+- Linked test cases: TC-SCH-010 to TC-SCH-015 (planned)
+
+### GAP-002: rotation_speed allowed values differ across three places
+- Category: Inconsistency
+- Parameters: rotation_speed
+- Evidence:
+  - Schema: hesai schema L45-L51, 300 to 1200, multipleOf 60
+  - Runtime range: wrapper L199-L212, integer_range 300 to 1200 step 300 (300, 600, 900, 1200)
+  - Runtime description: wrapper L199-L212, additional_constraints "300, 600, 1200"
+  - Default YAML: PandarXT32.param.yaml L24, 600
+- Assumption: XT32 supports 300, 600 and 1200 RPM (5, 10 and 20 Hz), as the runtime description says. To be confirmed with the vendor manual (source E)
+- Impact: 900 is accepted by the schema and the runtime range but is not listed as supported. Once GAP-001 is fixed, values like 360 would pass the schema but fail at launch
+- Question: Is 900 RPM supported on XT32, and which source is authoritative?
+- Linked test cases: TC-SCH-016, TC-RUN-001 (planned)
+
+### GAP-003: ptp_lock_threshold applicability differs between docs and code
+- Category: Inconsistency
+- Parameters: ptp_lock_threshold
+- Evidence:
+  - Doc: common.md L29, "Only applies to OT128 and QT128"
+  - Code: src/nebula_hesai/nebula_hesai_hw_interfaces/src/hesai_hw_interface.cpp L1164-L1176 writes the value to Pandar128E4X, QT128, XT16, XT32 and XT32M. OT128 is not in this list
+  - Schema: model schema L146, required for XT32
+- Assumption: The code reflects actual behavior and the doc is outdated
+- Impact: Users following the doc may treat this value as unused on XT32, while the driver writes it to the sensor. The value decides when the sensor reports locked or tracking, which changes the diagnostic status
+- Question: Is the list in common.md outdated, and does OT128 apply this value in another code path?
+- Linked test cases: TC-PTP-010 (planned, L4)
+
+### GAP-004: additionalProperties at "/**" level has no effect
+- Category: Inconsistency
+- Parameters: (structure)
+- Evidence:
+  - Schema: model schema L161 puts "additionalProperties": false inside "properties" of "/**", so it is read as a property name, not a rule
+  - Probe: an unknown key next to ros__parameters passes (C-02). Control: an unknown key inside ros__parameters is rejected (CTRL-3), where the same rule is placed correctly (L151)
+- Assumption: The intent is to forbid unknown keys at "/**" level, like one level below
+- Impact: Parameters placed at the wrong level are silently ignored instead of being reported
+- Question: Can the keyword be moved out of "properties"?
+- Linked test cases: TC-SCH-020 (planned)
+
+### GAP-005: multicast_ip pattern accepts any string
+- Category: Inconsistency
+- Parameters: multicast_ip
+- Evidence:
+  - Schema: communication.json L54, the pattern ends with "|", an empty alternative. "pattern" is not anchored, so the empty alternative matches every string
+  - Probe: multicast_ip="not-an-ip" passes (C-05). This rule is not next to a "$ref", so it is independent of GAP-001
+- Assumption: Valid values are an empty string (multicast disabled) or an address in 224.0.0.0 to 239.255.255.255
+- Impact: Typos are only found when the socket is opened
+- Question: Should the pattern be "^$|^(...)$"?
+- Linked test cases: TC-SCH-021 (planned)
+
+### GAP-006: cut_angle range depends on FoV but is checked alone
+- Category: Interaction undefined
+- Parameters: cut_angle, cloud_min_angle, cloud_max_angle
+- Evidence:
+  - Doc: common.md L107, cut_angle must be in (cloud_min_angle, cloud_max_angle], or [0, 360) for a 360 deg FoV
+  - Schema: hesai schema L91-L97, 0 to 360 with no relation to FoV
+  - Runtime: wrapper L169-L176, 0 to 360 step 0.01. The description says "Cannot be equal to the start angle in a non-360 deg FoV", worded differently from the doc
+  - Probe: cut_angle=360 with FoV 0 to 360 passes (C-06)
+- Assumption: Values outside the doc range are invalid and should be rejected before connecting. For a FoV that crosses 0 deg (e.g. 270 to 90), I assume the valid range also crosses 0 deg
+- Impact: The behavior for an invalid cut_angle (empty or split scans, wrong timestamps) is unknown and can only be checked with recorded data
+- Question: What does the driver do with cut_angle=360 at 360 deg FoV, and how is the range defined for a FoV that crosses 0 deg?
+- Linked test cases: TC-SCH-022, TC-FOV-010 (planned, L3)
+
+### GAP-007: PTP transport rule is documented as a restriction but handled as auto-correction
+- Category: Inconsistency
+- Parameters: ptp_profile, ptp_transport_type
+- Evidence:
+  - Doc: common.md L19, "For 802.1as and automotive, only L2 is allowed"
+  - Schema: hesai schema L65-L70 has no rule. The same file uses if/then elsewhere (L150-L163), so the rule is expressible
+  - Probe: ptp_profile=802.1as with UDP passes (C-07)
+  - Runtime: wrapper L240-L253 logs a WARN and overwrites the parameter to L2
+- Assumption: Auto-correction is the intended behavior, and the doc should describe it
+- Impact: Users may believe UDP is in use. Only a WARN line shows otherwise
+- Question: Should the schema reject this combination, or should the doc describe the auto-correction?
+- Linked test cases: TC-SCH-023 (planned), TC-RUN-002 (planned, L2)
+
+### GAP-008: Ports and MTU have no upper bound while code uses uint16_t
+- Category: Missing
+- Parameters: data_port, gnss_port, packet_mtu_size
+- Evidence:
+  - Schema: communication.json L20-L26, L32-L38, L58-L64, minimum 0 and no maximum
+  - Code: nebula_common.hpp L312 and L331, hesai_common.hpp L181, all uint16_t. Declared without a range in wrapper L157-L158 and L192
+  - Probe: data_port=70000, gnss_port=70000 and packet_mtu_size=0 pass (C-10a to C-10c)
+- Assumption: Valid ports are 1 to 65535, and MTU must be large enough for one sensor packet (exact minimum to confirm)
+- Impact: A value above 65535 may be truncated when converted to uint16_t, so the driver could listen on a different port without an error (to check at L2)
+- Question: Can maximum 65535 be added, and is there a minimum MTU?
+- Linked test cases: TC-SCH-024 to TC-SCH-026, TC-RUN-003 (planned)
+
+### GAP-009: min_range and max_range are optional, unordered, with differing defaults
+- Category: Missing
+- Parameters: min_range, max_range
+- Evidence:
+  - Schema: not in the required list (model schema L120-L150). misc.json L66-L77 gives defaults 0.3 and 300.0, minimum 0, no ordering rule
+  - Default YAML: 0.05 and 120.0
+  - Runtime: wrapper L190-L191 declares both without a default value or range
+  - Probe: min_range=200 with max_range=100 passes (C-13)
+- Assumption: min_range must be less than max_range. Because the runtime declares them without defaults, I assume omitting them fails at launch even though the schema marks them optional (to check at L2)
+- Impact: An inverted range would filter out every point. Schema and runtime may disagree on whether the values are required
+- Question: Should both be required, and should the schema enforce min_range < max_range?
+- Linked test cases: TC-SCH-027, TC-RUN-004 (planned)
+
+### GAP-010: rotation_speed and diagnostics rate bounds must change together
+- Category: Interaction undefined
+- Parameters: rotation_speed, diagnostics.pointcloud_publish_rate
+- Evidence:
+  - Default YAML: L24 rotation_speed 600, L33-L38 bounds 9.5 to 10.5 Hz (OK) and 9.0 to 11.0 Hz (WARN)
+  - Code: src/nebula_hesai/nebula_hesai/include/nebula_hesai/decoder_wrapper.hpp L96-L122. The nominal rate is computed from rotation_speed, the bounds come from parameters, and a mismatch only logs a startup WARN
+  - Docs: no statement that the bounds must follow rotation_speed
+- Assumption: XT32 produces one scan per rotation, so 1200 RPM gives 20 Hz (get_scans_per_rotation not checked yet)
+- Impact: Changing only rotation_speed to 1200 gives a startup WARN and then a constant ERROR diagnostic while the sensor works normally
+- Question: Should the default bounds be derived from rotation_speed, or should the docs state this rule?
+- Linked test cases: TC-DIAG-001 (planned, L2)
+
+### GAP-011: num_frame_transition default differs between schema and code
+- Category: Inconsistency
+- Parameters: diagnostics.pointcloud_publish_rate.num_frame_transition
+- Evidence: diagnostics.json L43-L48 default 3; decoder_wrapper.hpp L112-L113 default 1. The XT32 YAML does not set it
+- Assumption: The generated docs show 3, while the driver uses 1
+- Impact: The diagnostic status changes after 1 frame instead of 3, so it may flap more than users expect
+- Question: Which default is intended?
+- Linked test cases: TC-DIAG-002 (planned, L2)
+
+### GAP-012: "Dual" return mode means different modes per model
+- Category: Ambiguity
+- Parameters: return_mode
+- Evidence: hesai_common.hpp L617-L657. For XT32, "Dual" equals "LastStrongest". For QT64, "Dual" equals "LastFirst". The XT32 enum (model schema L78-L86) lists both "Dual" and "LastStrongest" without saying they are the same
+- Assumption: For XT32, "Dual" is an alias of "LastStrongest"
+- Impact: A config copied between models silently changes meaning
+- Question: Can the docs state what "Dual" maps to per model?
+- Linked test cases: TC-RM-001 (planned, L2)
+
+### GAP-013: Degenerate FoV settings are not defined
+- Category: Ambiguity
+- Parameters: cloud_min_angle, cloud_max_angle
+- Evidence: common.md L93-L94 allows a FoV that crosses 0 deg. misc.json L17-L30 and wrapper ranges allow each value in 0 to 360 independently. Nothing defines cloud_min_angle == cloud_max_angle, or cloud_min_angle=360
+- Assumption: Equal angles mean an empty FoV and should be rejected
+- Impact: Unknown output for these settings
+- Question: Are equal angles valid, and is 360 a valid start angle?
+- Linked test cases: TC-FOV-011 (planned, L2)
+
+### GAP-014: diag_span has no unit
+- Category: Missing
+- Parameters: diag_span
+- Evidence: topic.json L18-L24, description "Diagnostics rate", default 1000, no unit
+- Assumption: Milliseconds, based on the default value
+- Impact: Users cannot tell how to change the diagnostics period
+- Question: What is the unit?
+- Linked test cases: none (doc review only)
+
+### GAP-015: Schema defaults are strings for numeric and boolean types
+- Category: Inconsistency
+- Parameters: many
+- Evidence: hesai schema L47 ("600"), L60 ("0"); hardware.json L8 ("true"); diagnostics.json L33 and L38 ("9.0", "11.0") while L16 and L21 are numbers; hesai schema L32 (multicast_ip default is two quote characters as text)
+- Assumption: Defaults should have the same type as the parameter
+- Impact: Generated docs and any tool that reads defaults get the wrong type
+- Question: Can defaults be typed consistently?
+- Linked test cases: TC-SCH-030 (planned)
+
+---
+
+## Candidate mapping
+
+| Candidate | Result |
+|---|---|
+| C-01 | GAP-001, and the rotation_speed part also in GAP-002 |
+| C-02 | GAP-004 |
+| C-03, C-13 | GAP-009 |
+| C-04 | Scope note (generated docs) |
+| C-05 | GAP-005 |
+| C-06 | GAP-006 |
+| C-07 | GAP-007 |
+| C-08 | GAP-003 |
+| C-09 | GAP-010 (first guess was partly wrong: bounds are used, but not linked to rotation_speed) |
+| C-10 | GAP-008 |
+| C-11 | GAP-013 |
+| C-12 | GAP-015 |
+| C-14 | GAP-014 |
+| C-15 | GAP-011 |
+| C-16 | GAP-012 |
+| C-17 | Tooling note below, not counted as a GAP |
+
+## Tooling note (C-17)
+- check-jsonschema 0.39.0 cannot load the original schema files: a relative "$ref" inside a file reached through another relative "$ref" is resolved to a wrong path. Removing "$id" does not help. Replacing "$id" with each file's absolute file URI works (probe, "Schema loading comparison")
+- The relative "$id" values (lidar_hesai.json L168, core schemas use "nebula_ros_base/...", an old package name) are part of the cause, but the tool's behavior is too
+- nebula's own CI uses autoware-github-actions/json-schema-check v1.69.1 (.github/workflows/json-schema-check.yaml). I have not checked how it loads schemas, so this is not reported as a nebula defect
+- Lesson: the first probe run counted tool errors as "reject" because both use exit code 1. The BASE case exposed it. The probe now separates pass, reject and error, and checks BASE and a control before trusting any result
