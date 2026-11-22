@@ -4,7 +4,7 @@ Baseline: tier4/nebula 4e02244, Pandar XT32. See 00_scope.md.
 
 ## Method
 1. Read sources A to D and record candidates (C-xx)
-2. Verify each candidate: schema behavior with scripts/probe_schema.py (L1), code reading for runtime behavior
+2. Verify each candidate: schema behavior with scripts/probe_schema.py (L1), code reading for runtime behavior, node runs without a sensor for launch behavior (L2)
 3. Promote verified candidates to GAP entries. Merge candidates with the same root cause
 4. Mark every assumption as an assumption. Facts come with a file and line reference
 
@@ -14,24 +14,25 @@ File abbreviations:
 - core schemas: src/nebula_core/nebula_core_ros/schema/*.json
 - wrapper: src/nebula_hesai/nebula_hesai/src/hesai_ros_wrapper.cpp
 - probe: docs/evidence/probe-2026-11-22.md
+- L2 run: docs/evidence/l2-run-2026-11-22.md
 
 ## Summary
 
 | ID | Title | Category | Verified by |
 |---|---|---|---|
 | GAP-001 | Model-specific schema constraints are not enforced | Inconsistency | probe (L1) |
-| GAP-002 | rotation_speed allowed values differ across three places | Inconsistency | code reading |
+| GAP-002 | rotation_speed allowed values differ across three places | Inconsistency | code reading, L2 run |
 | GAP-003 | ptp_lock_threshold applicability differs between docs and code | Inconsistency | code reading |
 | GAP-004 | additionalProperties at "/**" level has no effect | Inconsistency | probe (L1) |
 | GAP-005 | multicast_ip pattern accepts any string | Inconsistency | probe (L1) |
 | GAP-006 | cut_angle range depends on FoV but is checked alone | Interaction undefined | probe (L1), code reading |
-| GAP-007 | PTP transport rule is documented as a restriction but handled as auto-correction | Inconsistency | probe (L1), code reading |
-| GAP-008 | Ports and MTU have no upper bound while code uses uint16_t | Missing | probe (L1), code reading |
-| GAP-009 | min_range and max_range are optional, unordered, with differing defaults | Missing | probe (L1), code reading |
-| GAP-010 | rotation_speed and diagnostics rate bounds must change together | Interaction undefined | code reading |
-| GAP-011 | num_frame_transition default differs between schema and code | Inconsistency | code reading |
-| GAP-012 | "Dual" return mode means different modes per model | Ambiguity | code reading |
-| GAP-013 | Degenerate FoV settings are not defined | Ambiguity | doc reading |
+| GAP-007 | PTP transport rule is documented as a restriction but handled as auto-correction | Inconsistency | probe (L1), code reading, L2 run |
+| GAP-008 | Ports and MTU have no upper bound while code uses uint16_t | Missing | probe (L1), code reading, L2 run |
+| GAP-009 | min_range and max_range are optional, unordered, with differing defaults | Missing | probe (L1), code reading, L2 run |
+| GAP-010 | rotation_speed and diagnostics rate bounds must change together | Interaction undefined | code reading, L2 run |
+| GAP-011 | num_frame_transition default differs between schema and code | Inconsistency | code reading, L2 run |
+| GAP-012 | "Dual" return mode means different modes per model | Ambiguity | code reading, L2 run |
+| GAP-013 | Degenerate FoV settings are not defined | Ambiguity | doc reading, L2 run |
 | GAP-014 | diag_span has no unit | Missing | doc reading |
 | GAP-015 | Schema defaults are strings for numeric and boolean types | Inconsistency | doc reading |
 
@@ -57,10 +58,11 @@ File abbreviations:
   - Runtime range: wrapper L199-L212, integer_range 300 to 1200 step 300 (300, 600, 900, 1200)
   - Runtime description: wrapper L199-L212, additional_constraints "300, 600, 1200"
   - Default YAML: PandarXT32.param.yaml L24, 600
-- Assumption: XT32 supports 300, 600 and 1200 RPM (5, 10 and 20 Hz), as the runtime description says. To be confirmed with the vendor manual (source E)
-- Impact: 900 is accepted by the schema and the runtime range but is not listed as supported. Once GAP-001 is fixed, values like 360 would pass the schema but fail at launch
+  - L2 run (TC-RUN-001, 3 of 3 runs): rotation_speed=900 is accepted and the node starts with "Rotation Speed: 900". `ros2 param describe` shows Min 300, Max 1200, Step 300 and "Additional constraints: 300, 600, 1200". rotation_speed=360 aborts startup with InvalidParameterValueException (TC-RUN-005)
+- Assumption: XT32 supports 300, 600 and 1200 RPM (5, 10 and 20 Hz), as the runtime description says. To be confirmed with the vendor manual (source E). The L2 run shows what the driver accepts, not what the sensor supports, so it does not settle this
+- Impact: 900 is accepted by the schema and, as observed at L2, by the runtime range, but is not listed as supported. Once GAP-001 is fixed, values like 360 would pass the schema but fail at launch
 - Question: Is 900 RPM supported on XT32, and which source is authoritative?
-- Linked test cases: TC-SCH-016, TC-RUN-001 (planned)
+- Linked test cases: TC-SCH-016, TC-RUN-001 (L2, run 2026-11-22)
 
 ### GAP-003: ptp_lock_threshold applicability differs between docs and code
 - Category: Inconsistency
@@ -116,11 +118,12 @@ File abbreviations:
   - Doc: common.md L19, "For 802.1as and automotive, only L2 is allowed"
   - Schema: hesai schema L65-L70 has no rule. The same file uses if/then elsewhere (L150-L163), so the rule is expressible
   - Probe: ptp_profile=802.1as with UDP passes (C-07)
-  - Runtime: wrapper L240-L253 logs a WARN and overwrites the parameter to L2
-- Assumption: Auto-correction is the intended behavior, and the doc should describe it
-- Impact: Users may believe UDP is in use. Only a WARN line shows otherwise
-- Question: Should the schema reject this combination, or should the doc describe the auto-correction?
-- Linked test cases: TC-SCH-023 (planned), TC-RUN-002 (planned, L2)
+  - Runtime: wrapper L240-L253 logs a WARN, sets the internal config to L2 (L251) and calls set_parameter to change the parameter to L2 (L252). The parameter is declared read-only (L240), and the result of set_parameter is not checked
+  - L2 run (TC-RUN-002, 3 of 3 runs): the WARN is logged and the logged configuration shows "PTP Transport Type: L2", but `ros2 param get` returns UDP. `ros2 param describe` shows "Read only: true". An external `ros2 param set` to L2 is refused with "cannot be set because it is read-only". Control: the same command changes min_range (read-write) to 0.1
+- Assumption: Auto-correction is the intended behavior, and the doc should describe it. I also assume the update at L252 is meant to succeed, so that the parameter shows the value in use. That it fails for the read-only reason is inferred from the external set result, not traced inside rclcpp
+- Impact: The parameter reports UDP while the driver uses L2. Users and tools that read parameters see the wrong value. Only the WARN line and the configuration log show the value in use
+- Question: Should the schema reject this combination, or should the doc describe the auto-correction? Should the update at L252 succeed (for example, by checking its result), so that the parameter matches the value in use?
+- Linked test cases: TC-SCH-023 (planned), TC-RUN-002 (L2, run 2026-11-22: Fail)
 
 ### GAP-008: Ports and MTU have no upper bound while code uses uint16_t
 - Category: Missing
@@ -129,10 +132,12 @@ File abbreviations:
   - Schema: communication.json L20-L26, L32-L38, L58-L64, minimum 0 and no maximum
   - Code: nebula_common.hpp L312 and L331, hesai_common.hpp L181, all uint16_t. Declared without a range in wrapper L157-L158 and L192
   - Probe: data_port=70000, gnss_port=70000 and packet_mtu_size=0 pass (C-10a to C-10c)
+  - L2 run (TC-RUN-003, 3 of 3 runs): data_port=70000 is accepted. The logged configuration shows "Data Port: 4464" (70000 - 65536), while `ros2 param get` returns 70000. `ros2 param describe` shows an integer, read-only, with no range
+  - Code path: rclcpp returns integer parameters as int64_t (/opt/ros/jazzy/include/rclcpp/rclcpp/parameter_value.hpp L261-L267). The wrapper stores the value in data_port, a uint16_t field (L157, nebula_common.hpp L312). The hardware interface opens the data socket with this field (src/nebula_hesai/nebula_hesai_hw_interfaces/src/hesai_hw_interface.cpp L228)
 - Assumption: Valid ports are 1 to 65535, and MTU must be large enough for one sensor packet (exact minimum to confirm)
-- Impact: A value above 65535 may be truncated when converted to uint16_t, so the driver could listen on a different port without an error (to check at L2)
+- Impact: A data_port above 65535 is silently wrapped to a different port (observed at L2). With a sensor, the driver would open the data socket on that port (code reading, L228; not observed, because launch_hw=false opens no socket). gnss_port and packet_mtu_size are declared the same way (L158, L192) but were not run
 - Question: Can maximum 65535 be added, and is there a minimum MTU?
-- Linked test cases: TC-SCH-024 to TC-SCH-026, TC-RUN-003 (planned)
+- Linked test cases: TC-SCH-024 to TC-SCH-026, TC-RUN-003 (L2, run 2026-11-22)
 
 ### GAP-009: min_range and max_range are optional, unordered, with differing defaults
 - Category: Missing
@@ -142,10 +147,11 @@ File abbreviations:
   - Default YAML: 0.05 and 120.0
   - Runtime: wrapper L190-L191 declares both without a default value or range
   - Probe: min_range=200 with max_range=100 passes (C-13)
-- Assumption: min_range must be less than max_range. Because the runtime declares them without defaults, I assume omitting them fails at launch even though the schema marks them optional (to check at L2)
-- Impact: An inverted range would filter out every point. Schema and runtime may disagree on whether the values are required
+  - L2 run (TC-RUN-004, 3 of 3 runs): with the min_range line removed from the default YAML, startup aborts with rclcpp::ParameterTypeException "expected [double] got [not set]". The message does not name the parameter. Control: the unchanged YAML starts (TC-RUN-006)
+- Assumption: min_range must be less than max_range. The earlier assumption that omitting min_range fails at launch is confirmed at L2. Omitting max_range was not run
+- Impact: An inverted range would filter out every point (assumption, not run). Schema and runtime disagree on whether min_range is required: the schema marks it optional, the driver does not start without it, and the error does not say which parameter is missing
 - Question: Should both be required, and should the schema enforce min_range < max_range?
-- Linked test cases: TC-SCH-027, TC-RUN-004 (planned)
+- Linked test cases: TC-SCH-027, TC-RUN-004 (L2, run 2026-11-22)
 
 ### GAP-010: rotation_speed and diagnostics rate bounds must change together
 - Category: Interaction undefined
@@ -154,37 +160,44 @@ File abbreviations:
   - Default YAML: L24 rotation_speed 600, L33-L38 bounds 9.5 to 10.5 Hz (OK) and 9.0 to 11.0 Hz (WARN)
   - Code: src/nebula_hesai/nebula_hesai/include/nebula_hesai/decoder_wrapper.hpp L96-L122. The nominal rate is computed from rotation_speed, the bounds come from parameters, and a mismatch only logs a startup WARN
   - Docs: no statement that the bounds must follow rotation_speed
-- Assumption: XT32 produces one scan per rotation, so 1200 RPM gives 20 Hz (get_scans_per_rotation not checked yet)
-- Impact: Changing only rotation_speed to 1200 gives a startup WARN and then a constant ERROR diagnostic while the sensor works normally
+  - L2 run (TC-DIAG-001, 3 of 3 runs): rotation_speed=1200 with the default bounds logs "The configured sensor framerate (1200 RPM = 20.00 Hz) is outside the configured framerate bounds: 9.50 - 10.50", and the node keeps running. rotation_speed=900 logs the same WARN with 15.00 Hz (TC-RUN-001)
+- Assumption: The driver's rate calculation is confirmed by the WARN text (1200 RPM gives 20 Hz, 900 RPM gives 15 Hz). The diagnostic status during operation is assumed, not observed: no packets arrive with launch_hw=false
+- Impact: Changing only rotation_speed to 1200 gives a startup WARN (observed at L2). The diagnostic would then report ERROR while the sensor works normally (assumption, needs recorded data at that rate or a sensor)
 - Question: Should the default bounds be derived from rotation_speed, or should the docs state this rule?
-- Linked test cases: TC-DIAG-001 (planned, L2)
+- Linked test cases: TC-DIAG-001 (L2, run 2026-11-22)
 
 ### GAP-011: num_frame_transition default differs between schema and code
 - Category: Inconsistency
 - Parameters: diagnostics.pointcloud_publish_rate.num_frame_transition
-- Evidence: diagnostics.json L43-L48 default 3; decoder_wrapper.hpp L112-L113 default 1. The XT32 YAML does not set it
+- Evidence:
+  - Schema and code: diagnostics.json L43-L48 default 3; decoder_wrapper.hpp L112-L113 default 1. The XT32 YAML does not set it
+  - L2 run (TC-DIAG-003, 3 of 3 runs): with the default XT32 YAML, `ros2 param dump` shows num_frame_transition: 1
 - Assumption: The generated docs show 3, while the driver uses 1
 - Impact: The diagnostic status changes after 1 frame instead of 3, so it may flap more than users expect
 - Question: Which default is intended?
-- Linked test cases: TC-DIAG-002 (planned, L2)
+- Linked test cases: TC-DIAG-002 (planned), TC-DIAG-003 (L2, run 2026-11-22)
 
 ### GAP-012: "Dual" return mode means different modes per model
 - Category: Ambiguity
 - Parameters: return_mode
-- Evidence: hesai_common.hpp L617-L657. For XT32, "Dual" equals "LastStrongest". For QT64, "Dual" equals "LastFirst". The XT32 enum (model schema L78-L86) lists both "Dual" and "LastStrongest" without saying they are the same
-- Assumption: For XT32, "Dual" is an alias of "LastStrongest"
+- Evidence:
+  - Code: hesai_common.hpp L617-L657. For XT32, "Dual" equals "LastStrongest". For QT64, "Dual" equals "LastFirst". The XT32 enum (model schema L78-L86) lists both "Dual" and "LastStrongest" without saying they are the same
+  - L2 run (TC-RM-001 and TC-RM-002, 3 of 3 runs each): return_mode=Dual and return_mode=LastStrongest both log "Return Mode: LastStrongest". The parameter keeps the value as written (Dual)
+- Assumption: For XT32, "Dual" is an alias of "LastStrongest". Confirmed at the driver configuration level by the L2 run. What the sensor outputs in this mode needs a sensor (L4)
 - Impact: A config copied between models silently changes meaning
 - Question: Can the docs state what "Dual" maps to per model?
-- Linked test cases: TC-RM-001 (planned, L2)
+- Linked test cases: TC-RM-001, TC-RM-002 (L2, run 2026-11-22)
 
 ### GAP-013: Degenerate FoV settings are not defined
 - Category: Ambiguity
 - Parameters: cloud_min_angle, cloud_max_angle
-- Evidence: common.md L93-L94 allows a FoV that crosses 0 deg. misc.json L17-L30 and wrapper ranges allow each value in 0 to 360 independently. Nothing defines cloud_min_angle == cloud_max_angle, or cloud_min_angle=360
-- Assumption: Equal angles mean an empty FoV and should be rejected
+- Evidence:
+  - Docs, schema and code: common.md L93-L94 allows a FoV that crosses 0 deg. misc.json L17-L30 and wrapper ranges allow each value in 0 to 360 independently. Nothing defines cloud_min_angle == cloud_max_angle, or cloud_min_angle=360
+  - L2 run (TC-FOV-011, 3 of 3 runs): cloud_min_angle=90 with cloud_max_angle=90 is accepted. The node starts and logs "FoV Start: 90" and "FoV End: 90". `ros2 param describe` shows each angle as an integer from 0 to 360, step 1, with no rule between them
+- Assumption: Equal angles mean an empty FoV and should be rejected. The L2 run shows they are not rejected. The resulting point cloud (empty, full or other) is not known and needs recorded data (L3)
 - Impact: Unknown output for these settings
 - Question: Are equal angles valid, and is 360 a valid start angle?
-- Linked test cases: TC-FOV-011 (planned, L2)
+- Linked test cases: TC-FOV-011 (L2, run 2026-11-22)
 
 ### GAP-014: diag_span has no unit
 - Category: Missing
