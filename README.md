@@ -11,6 +11,8 @@ The same parameters are described in five places. They are cross-checked, every 
 
 ### Simple analogy
 
+Imagine you walk into a McDonald's.
+
 You order a 🍔 Big Mac combo at a kiosk and ask for a 🍦 McFlurry instead of 🍟 fries.
 
 - The menu (the docs) says: "Big Mac combos come with fries only. No McFlurry swap."
