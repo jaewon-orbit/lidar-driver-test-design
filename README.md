@@ -9,9 +9,9 @@ The same parameters are described in five places. They are cross-checked, every 
 
 **`ptp_transport_type` parameter still reads UDP after auto-correction to L2**
 
-### 🍔 Simple analogy (McDonald's)
+### Simple analogy
 
-You order a Big Mac combo at a kiosk and ask for a McFlurry instead of fries.
+You order a 🍔 Big Mac combo at a kiosk and ask for a 🍦 McFlurry instead of 🍟 fries.
 
 - The menu (the docs) says: "Big Mac combos come with fries only. No McFlurry swap."
 - The kitchen (the driver) follows the rule and quietly packs fries instead.
@@ -22,15 +22,11 @@ Anyone who checks only the receipt thinks a McFlurry was served, but it was frie
 The issue asks the maintainers to pick one consistent behavior.
 
 | Option | What happens | Pros | Cons |
-|---|---|---|---|
+|--------|--------------|------|------|
 | A. Block the order (fail fast) | The kiosk shows "This combination cannot be ordered" and stops the payment | Clear. A wrong setting never gets in | Anyone using the old setting suddenly cannot order |
 | B. Swap it and fix the receipt | The kitchen packs fries and the receipt says "Big Mac combo + fries", with a swap notice if needed | Backward compatible. The receipt matches what was served | The swap must be described on the menu (the docs) |
 
-The current state is the odd one out: the menu says "not allowed", the kitchen swaps anyway, and the receipt stays wrong.
-
 > 📖 **Full walkthrough: [PTP Transport Type Mismatch in tier4/nebula (Issue #564)](docs/issue-564-explained.md)**
->
-> What PTP is, what each part of the analogy really stands for, how the problem was confirmed, and what was asked upstream.
 
 | | |
 |---|---|
