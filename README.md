@@ -1,8 +1,8 @@
-# LiDAR Driver Test Design: Hesai Pandar XT32 in tier4/nebula
+# LiDAR XT32 Parameter Verification: Hesai Pandar XT32 in tier4/nebula
 
-[![schema-check](https://github.com/jaewon-orbit/lidar-driver-test-design/actions/workflows/schema-check.yml/badge.svg)](https://github.com/jaewon-orbit/lidar-driver-test-design/actions/workflows/schema-check.yml)
+[![schema-check](https://github.com/jaewon-orbit/lidar-xt32-param-verification/actions/workflows/schema-check.yml/badge.svg)](https://github.com/jaewon-orbit/lidar-xt32-param-verification/actions/workflows/schema-check.yml)
 
-A QA side project on documentation analysis and test design. It looks at the Hesai Pandar XT32 parameters in [tier4/nebula](https://github.com/tier4/nebula), pinned at commit [`4e02244`](https://github.com/tier4/nebula/tree/4e02244695879e823f570f13449d95cb642cd35a).
+A QA side project on documentation analysis, test design and verification. It looks at the Hesai Pandar XT32 parameters in [tier4/nebula](https://github.com/tier4/nebula), pinned at commit [`4e02244`](https://github.com/tier4/nebula/tree/4e02244695879e823f570f13449d95cb642cd35a).
 The same parameters are described in five places. They are cross-checked, every gap is recorded with evidence and an explicit assumption, and the resulting test cases are run as far as possible without a physical sensor.
 
 ## Reported upstream: [tier4/nebula#564](https://github.com/tier4/nebula/issues/564)
@@ -48,7 +48,7 @@ Details: [GAP-007](docs/02_gap_analysis.md), [L2 evidence](docs/evidence/l2-run-
 | Gaps (GAP) | 15, each with evidence, assumption, impact and a question for the developers |
 | Requirements | 21, each tied to a file and line |
 | Test cases | 77 (L1 54, L2 11, L3 7, L4 5) |
-| L1 schema checks | Automated in CI: 45 passed, 17 expected failures for known gaps |
+| L1 schema checks | Automated with pytest, run in GitHub Actions on every push: 45 passed, 17 strict xfail for known gaps |
 | L2 driver runs (no sensor) | 11 cases, each run 3 times with identical results |
 | L3 replay of recorded data | Default config reproduces nebula's reference point cloud exactly (63021 points). 4 FoV cases run |
 | Traceability | Requirements: Full 19, Partial 2. Gaps: Full 13, Partial 1, None 1 |
@@ -68,6 +68,14 @@ Details: [GAP-007](docs/02_gap_analysis.md), [L2 evidence](docs/evidence/l2-run-
 ![FoV result on the replayed XT32 recording](docs/figures/fov_top_view.png)
 
 *FoV settings applied to the replayed XT32 recording (L3). Data: nebula test data `decoder_ground_truth/xt32` at commit 4e02244, Apache-2.0.*
+
+## Test automation (pytest)
+
+- All 54 L1 cases in `docs/04_test_cases.csv` are automated in `tests/test_param_schema.py`
+- Cases are data driven with `pytest.mark.parametrize`, so one table row becomes one test
+- Known gaps are marked `xfail(strict=True)`. If nebula fixes a gap, the test passes and CI fails, which signals that the docs here need updating
+- Two consistency tests check that every L1 case in the CSV is automated and that the xfail marks match the known gaps
+- GitHub Actions clones nebula at the pinned commit, runs pytest, and checks that the traceability matrix is up to date
 
 ## Sources compared
 
@@ -118,7 +126,7 @@ scripts/
   l2_run_case.sh               runs one L2 case in the container
   l3/                          L3 replay and analysis tools
 tests/
-  test_param_schema.py         L1 checks
+  test_param_schema.py         L1 checks (pytest)
 .github/workflows/
   schema-check.yml             CI
 ```
