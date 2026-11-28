@@ -4,7 +4,7 @@
 
 When the Hesai LiDAR driver in [tier4/nebula](https://github.com/tier4/nebula) receives an invalid PTP setting (`802.1as` with `UDP`), it quietly switches to the correct setting (`L2`) but keeps reporting the old value (`UDP`). The driver works correctly, but anyone who reads the parameter sees a value that is not in use. I found this by cross-checking the documentation against the code, confirmed it by running the driver, and reported it as [tier4/nebula#564](https://github.com/tier4/nebula/issues/564).
 
-This write-up is part of my QA side project [lidar-driver-test-design](https://github.com/jaewon-orbit/lidar-driver-test-design), where it is tracked as GAP-007 and test case TC-RUN-002. All file paths and line numbers refer to nebula commit `4e02244`.
+This write-up is part of my QA side project [lidar-xt32-param-verification](https://github.com/jaewon-orbit/lidar-xt32-param-verification), where it is tracked as GAP-007 and test case TC-RUN-002. All file paths and line numbers refer to nebula commit `4e02244`.
 
 ## The analogy, mapped
 
